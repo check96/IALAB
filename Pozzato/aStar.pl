@@ -35,14 +35,14 @@ generaFigli(nodo(S,Value,AzioniPerS),[_|AltreAzioni],FigliTail,Open,Close):-
   - false altrimenti.
 */
 % se la lista è vuota, torna la lista vuota. CASO BASE
-checkOpen(Nodo,[],[]).
+checkOpen(_,[],[]).
 % se il nodo è presente nella lista ma con un valore maggiore di quello del nuovo nodo, aggiorno il nodo e restituisco la lista aggiornata.
-checkOpen(nodo(S,Value,Azioni), [nodo(S,ListValue,ListActions)|Tail], [nodo(S,Value,Azioni)|Tail]) :-
+checkOpen(nodo(S,Value,Azioni), [nodo(S,ListValue,_)|Tail], [nodo(S,Value,Azioni)|Tail]) :-
   Value < ListValue, !.
 % altrimenti se è presente ma con un valore minore o uguale, restituisco false.
 checkOpen(nodo(S,_,_), [nodo(S,Value,Actions)|Tail], [nodo(S,Value,Actions)|Tail]) :- false.
 % continuo a scorrere la lista open, spostando la head nella nuova lista.
-checkOpen(Nodo,[Head|Tail],NewList) :- checkOpen(Nodo,Tail,[Head|NewList]).
+checkOpen(Nodo,[Head|Tail],[Head|NewList]) :- checkOpen(Nodo,Tail,NewList).
 
 /* calcolo del valore minimo dei nodi nella lista open
   min(lista,minimo)

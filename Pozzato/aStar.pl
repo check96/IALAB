@@ -10,7 +10,7 @@ aStar(Open,Close,Soluzione):-
     min(Open,nodo(NodeMin,ValueMin,Actions)),                                                   % calcolo il nodo con l'euristica migliore (distanza minore), tra quelli presenti in Open
     findall(Azione,applicabile(Azione,NodeMin),ListaApplicabili),                               % cerco tutte le possibili azioni applicabili al nodo NodeMin (il nodo calcolato al punto precedente)
     generaFigli(nodo(NodeMin,ValueMin,Actions),ListaApplicabili,ListaFigli,Open,Close),         % eseguo le azioni
-    delete(Open,nodo(NodeMin,ValueMin,Actions),NewOpen),                                        % elimino NodeMin dalla lista Open
+    select(nodo(NodeMin,ValueMin,Actions),Open,NewOpen),                                        % elimino NodeMin dalla lista Open
     append(NewOpen,ListaFigli,NuovaCoda),                                                       % aggiungo a open la lista dei figli generati precedentemente
     aStar(NuovaCoda,[NodeMin|Close],Soluzione).                                                 % aggiungo NodeMin alla lista dei visitati e continuo l'esplorazione
 
@@ -34,13 +34,13 @@ generaFigli(nodo(S,Value,AzioniPerS),[_|AltreAzioni],FigliTail,Open,Close):-
   - una nuova lista identica a open ma con il nodo aggiornato, se il nodo è presente nella lista ma con un valore più alto
   - false altrimenti.
 */
-% se la lista è vuota, torna la lista vuota. CASO BASE
-checkOpen(_,[],[]).
+% se la lista è vuota, restituisce la lista vuota. CASO BASE
+checkOpen(_,[],[]) :- !.
 % se il nodo è presente nella lista ma con un valore maggiore di quello del nuovo nodo, aggiorno il nodo e restituisco la lista aggiornata.
 checkOpen(nodo(S,Value,Azioni), [nodo(S,ListValue,_)|Tail], [nodo(S,Value,Azioni)|Tail]) :-
   Value < ListValue, !.
 % altrimenti se è presente ma con un valore minore o uguale, restituisco false.
-checkOpen(nodo(S,_,_), [nodo(S,Value,Actions)|Tail], [nodo(S,Value,Actions)|Tail]) :- false.
+checkOpen(nodo(S,_,_), [nodo(S,Value,Actions)|Tail], [nodo(S,Value,Actions)|Tail]) :- !, false.
 % continuo a scorrere la lista open, spostando la head nella nuova lista.
 checkOpen(Nodo,[Head|Tail],[Head|NewList]) :- checkOpen(Nodo,Tail,NewList).
 

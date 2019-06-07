@@ -6,7 +6,7 @@ iterativeDeepening(S,Soluzione,Soglia) :-
 
 iterativeDeepening(S,Soluzione,Soglia):-
     NuovaSoglia is Soglia+1,
-    numRighe(R), numColonne(C), NuovaSoglia =< R*C,
+    numRighe(R), numColonne(C), NuovaSoglia =< R*C,   # limite imposto per evitare che vada in un loop infinito quando non trova soluzioni
     iterativeDeepening(S,Soluzione,NuovaSoglia).
 
 dfsLimitata(S,[],_,_):-finale(S).

@@ -1,18 +1,19 @@
-% nodo(nodo,valore,azioni)
+% nodo(posizione,valore,azioni)
 
 search(Soluzione) :-
     iniziale(S),
-    aStar([nodo(S,0,[])],[],Sol), reverse(Sol,Soluzione).
+    aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione).
 
-% aStar(open(nodo(posizione,valore,azioni)),closed,soluzione)
-aStar(Open,_,Azioni) :- finale(S), member(nodo(S,_,Azioni),Open), !.        % restituisco la soluzione (le azioni), se un nodo finale S è presente in open
-aStar(Open,Close,Soluzione):-
-    min(Open,nodo(NodeMin,ValueMin,Actions)),                                                   % calcolo il nodo con l'euristica migliore (distanza minore), tra quelli presenti in Open
-    findall(Azione,applicabile(Azione,NodeMin),ListaApplicabili),                               % cerco tutte le possibili azioni applicabili al nodo NodeMin (il nodo calcolato al punto precedente)
+% aStar(open(nodo(posizione,valore,azioni)), nodeMin, closed, soluzione)
+aStar(_,nodo(S,_,Azioni),_,Azioni) :- finale(S), !.                                          % restituisco la soluzione (le azioni), se il prossimo nodo da espandere è un nodo finale S
+aStar(Open,nodo(NodeMin,ValueMin,Actions), Close,Soluzione):-
+    findall(Azione,applicabile(Azione,NodeMin),ListaApplicabili),                               % cerco tutte le possibili azioni applicabili al nodo NodeMin
     generaFigli(nodo(NodeMin,ValueMin,Actions),ListaApplicabili,ListaFigli,Open,Close),         % eseguo le azioni
     select(nodo(NodeMin,ValueMin,Actions),Open,NewOpen),                                        % elimino NodeMin dalla lista Open
     append(NewOpen,ListaFigli,NuovaCoda),                                                       % aggiungo a open la lista dei figli generati precedentemente
-    aStar(NuovaCoda,[NodeMin|Close],Soluzione).                                                 % aggiungo NodeMin alla lista dei visitati e continuo l'esplorazione
+    min(NuovaCoda,NewNodeMin),                                                                  % calcolo il nuovo nodeMin, cioè il nodo con l'euristica migliore (distanza minore), tra quelli presenti in NuovaCoda
+    aStar(NuovaCoda,NewNodeMin,[NodeMin|Close],Soluzione).                                      % aggiungo NodeMin alla lista dei visitati e continuo l'esplorazione
+
 
 % generaFigli(Nodo(nodo,valore,azioni),ListaApplicabili,ListaFigli,Open,Close).
 generaFigli(_,[],[],_,_).

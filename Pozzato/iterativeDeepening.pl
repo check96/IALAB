@@ -1,4 +1,8 @@
-search(Soluzione) :- iniziale(S), iterativeDeepening(S,Soluzione,1).
+search(Soluzione) :-
+  statistics(walltime, [_ | [_]]),
+  iniziale(S), iterativeDeepening(S,Soluzione,1),
+  statistics(walltime, [_ | [ExecutionTime]]),
+  write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
 
 iterativeDeepening(S,[],_) :- finale(S).
 iterativeDeepening(S,Soluzione,Soglia) :-
@@ -6,7 +10,7 @@ iterativeDeepening(S,Soluzione,Soglia) :-
 
 iterativeDeepening(S,Soluzione,Soglia):-
     NuovaSoglia is Soglia+1,
-    numRighe(R), numColonne(C), NuovaSoglia =< R*C,   # limite imposto per evitare che vada in un loop infinito quando non trova soluzioni
+    numRighe(R), numColonne(C), NuovaSoglia =< R*C,   % limite imposto per evitare che vada in un loop infinito quando non esistono soluzioni
     iterativeDeepening(S,Soluzione,NuovaSoglia).
 
 dfsLimitata(S,[],_,_):-finale(S).

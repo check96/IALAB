@@ -1,8 +1,12 @@
 % nodo(posizione,valore,azioni)
 
 search(Soluzione) :-
-    iniziale(S),
-    aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione).
+  statistics(walltime, [_ | [_]]),
+  iniziale(S),
+  aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione),
+  statistics(walltime, [_ | [ExecutionTime]]),
+  write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
+
 
 % aStar(open(nodo(posizione,valore,azioni)), nodeMin, closed, soluzione)
 aStar(_,nodo(S,_,Azioni),_,Azioni) :- finale(S), !.                                          % restituisco la soluzione (le azioni), se il prossimo nodo da espandere è un nodo finale S
@@ -18,6 +22,7 @@ aStar(Open,nodo(NodeMin,ValueMin,Actions), Close,Soluzione):-
 % generaFigli(Nodo(nodo,valore,azioni),ListaApplicabili,ListaFigli,Open,Close).
 generaFigli(_,[],[],_,_).
 
+%NB: VA AGGIUNTO checkClose CHE RIAPRE UN NODO QUALORA QUESTO VENGA GENERATO DI NUOVO MA CON UN VALORE MINORE... IN ALTERNATIVA SI PUO' PENSARE DI FARE QUESTO CONTROLLO INSIEME A checkOpen
 generaFigli(nodo(S,Value,AzioniPerS),[Azione|AltreAzioni],[nodo(SNuovo,NewValue,[Azione|AzioniPerS])|FigliTail],Open,Close):-
     trasforma(Azione,S,SNuovo,Costo),                                             % eseguo Azione e creo un nodo in una nuova posizione SNuovo
     NewValue is Costo + Value,                                                    % calcolo il valore dell'euristica del nuovo nodo
@@ -30,10 +35,12 @@ generaFigli(nodo(S,Value,AzioniPerS),[_|AltreAzioni],FigliTail,Open,Close):-
     generaFigli(nodo(S,Value,AzioniPerS),AltreAzioni,FigliTail,Open,Close).
 
 /* controlla se il nodo S è presente nella lista open.
-  restiuisce:
-  - la lista open se il nodo non è presente in essa
-  - una nuova lista identica a open ma con il nodo aggiornato, se il nodo è presente nella lista ma con un valore più alto
-  - false altrimenti.
+   restiuisce:
+   - la lista open se il nodo non è presente in essa
+   - una nuova lista identica a open ma con il nodo aggiornato, se il nodo è presente nella lista ma con un valore più alto
+   - false altrimenti.
+
+   checkOpen(Nodo,Open,NewOpen)
 */
 % se la lista è vuota, restituisce la lista vuota. CASO BASE
 checkOpen(_,[],[]) :- !.
@@ -44,6 +51,17 @@ checkOpen(nodo(S,Value,Azioni), [nodo(S,ListValue,_)|Tail], [nodo(S,Value,Azioni
 checkOpen(nodo(S,_,_), [nodo(S,Value,Actions)|Tail], [nodo(S,Value,Actions)|Tail]) :- !, false.
 % continuo a scorrere la lista open, spostando la head nella nuova lista.
 checkOpen(Nodo,[Head|Tail],[Head|NewList]) :- checkOpen(Nodo,Tail,NewList).
+
+/*
+    controlla se il nodo S è presente nella lista close.
+    Se è presente con un valore maggiore rispetto a quello di S, S viene rimosso da close e spostato in Open con il valore aggiornato
+
+    checkClose(Nodo,Open,Close)
+*/
+checkClose(_,[],[]) :- !.
+
+
+
 
 /* calcolo del valore minimo dei nodi nella lista open
   min(lista,minimo)

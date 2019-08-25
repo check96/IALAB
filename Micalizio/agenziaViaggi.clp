@@ -4,7 +4,7 @@
 (deftemplate location
   (slot name)
   (slot region)
-  (multislot tourismType (allowed-values Balneare Montano Lacustre Naturalistico Termale Culturale Religioso Sportivo Enogastronomico))
+  (multislot tourismTypes (allowed-values Balneare Montano Lacustre Naturalistico Termale Culturale Religioso Sportivo Enogastronomico))
 )
 
 (deftemplate hotel
@@ -22,29 +22,12 @@
   (slot stars (default 1))
   (slot numLocations (default 1))
   (slot nights (default 1))
-  (slot price (default 0))
-)
-
-(deftemplate subRequest
-  (slot name (default Person))
-  (slot numPeople (default 1))
-  (slot region)
-  (slot tourismType)
-  (slot stars (default 1))
-  (slot nights (default 1))
-  (slot price (default 0))
-)
-
-(deftemplate option
-  (slot name)
-  (slot hotel)
-  (slot nights (default 1))
-  (slot location)
-  (slot price (default 0))
+  (slot price)
 )
 
 (deftemplate solution
   (slot name)
+  (slot hotel)
   (multislot locations)
   (slot price (default 0))
 )
@@ -55,17 +38,21 @@
   (slot distance)
 )
 
+(deftemplate answer
+	(multislot request))
+
+
 (deffacts locations
-  (location(name Schiavonea)(region Calabria)(tourismType Balneare Naturalistico))
-  (location(name Camigliatello)(region Calabria)(tourismType Montano Naturalistico Lacustre))
-  (location(name Castrovillari)(region Calabria)(tourismType Culturale Enogastronomico Naturalistico))
-  (location(name Bari)(region Puglia)(tourismType Enogastronomico))
-  (location(name Polignano)(region Puglia)(tourismType Balneare Enogastronomico))
-  (location(name Alberobello)(region Puglia)(tourismType Culturale Enogastronomico))
-  (location(name Matera)(region Basilicata)(tourismType Culturale))
-  (location(name Lauria)(region Basilicata)(tourismType Termale Lacustre))
-  (location(name Napoli)(region Campania)(tourismType Culturale Enogastronomico Sportivo))
-  (location(name Caserta)(region Campania)(tourismType Culturale))
+  (location(name Schiavonea)(region Calabria)(tourismTypes Balneare Naturalistico))
+  (location(name Camigliatello)(region Calabria)(tourismTypes Montano Naturalistico Lacustre))
+  (location(name Castrovillari)(region Calabria)(tourismTypes Culturale Enogastronomico Naturalistico))
+  (location(name Bari)(region Puglia)(tourismTypes Enogastronomico))
+  (location(name Polignano)(region Puglia)(tourismTypes Balneare Enogastronomico))
+  (location(name Alberobello)(region Puglia)(tourismTypes Culturale Enogastronomico))
+  (location(name Matera)(region Basilicata)(tourismTypes Culturale))
+  (location(name Lauria)(region Basilicata)(tourismTypes Termale Lacustre))
+  (location(name Napoli)(region Campania)(tourismTypes Culturale Enogastronomico Sportivo))
+  (location(name Caserta)(region Campania)(tourismTypes Culturale))
 )
 
 (deffacts hotels
@@ -100,56 +87,58 @@
   (distance(from Schiavonea)(to Caserta)(distance 264))
 )
 
-(defrule simmetricalDistance (salience 10)
+(defrule simmetricalDistance (declare(salience 1000))
   (distance(from ?a)(to ?b)(distance ?d))
 =>
   (assert(distance(from ?b)(to ?a)(distance ?d)))
 )
 
-(defrule start
-  (request(name ?name))
+(defrule start (declare(salience 100))
 =>
-  (assert(solution(name ?name)))
   (focus CHOOSE)
 )
 
+  ;prende la richiesta dell'utente e ne scompone le parti
+(defmodule REQUEST)
+
+;deve avere priorità più alta
+;   (defrule read (declare(salience 1000))
+;=>
+;   (printout t "inserisci richiesta")
+;   (bind ?line (readline))
+;   (assert (answer (request ?line)))
+;)
+
+
+    ; regola o funzione che prese le parti dell'input va a riempire gli slot della richiesta
+;(defrule::REQUEST fillRequest)
+
+  ;dalle richieste si scelgono delle possiblili soluzioni
 (defmodule CHOOSE (import MAIN ?ALL)(export ?ALL))
 
-(defrule divide
-  (request(name ?name)(regions $? ?region $?)(tourismTypes $? ?tourismType $?)(nights ?nights))
-
-  =>
-
-  (assert(subRequest(name ?name)(region ?region)(tourismType ?tourismType)))
+(defrule defineHotel (declare (salience 100))
+  (request(name ?name)(numPeople ?numPeople)(stars ?stars))
+  (hotel(name ?nameHotel) (numRooms ?numRooms&:(>= ?numRooms ?numPeople)) (stars ?numStars&:(>= ?numStars ?stars)) (location ?loc) )
+  (location (name ?loc))
+=>
+  (assert(solution(name ?name) (hotel ?nameHotel) (locations ?loc)))
 )
 
-(defrule findOptions
-  ?subR <- (subRequest(name ?name)(numPeople ?numPeople)(nights ?nightsReq) (region ?region) (stars ?numStars) (price ?priceReq)(tourismType ?ttypeReq))
-  (hotel (name ?nameHotel)(numRooms ?numRooms&:(>= ?numRooms ?numPeople)) (stars ?starHotel&:(>= ?starHotel ?numStars)) (location ?loc))
-  (location (name ?nameLoc&:(eq ?nameLoc ?loc)) (region ?reg&:(eq ?reg ?region)) (tourismType $? ?ttype&:(eq $?ttype ?ttypeReq) $?))
-  (test(or (<= (* ?nightsReq 25 ?numPeople (+ ?starHotel 1)) ?priceReq)(= ?priceReq 0)))
-
+(defrule defineLocation (declare (salience 90))
+  (request(name ?name)(regions $?regions)(numLocations ?num)(tourismTypes $?tourismTypes))
+  (solution(name ?name) (hotel ?hotel) (locations $?locations))
+  (hotel(name ?hotel)(location ?location))
+  (location (name ?loc&:(neq ?loc ?location)) (region ?region)(tourismTypes $? ?ttype $?))
+  (test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
+  (test(or(member$ ?ttype $?tourismTypes)(=(length$ $?tourismTypes) 0)))
+  (distance(from ?loc)(to ?location)(distance ?d))
+  (test(and(<= ?d 100) (< (length$ $?locations) ?num)))
+  (test(not(member$ ?loc $?locations)))
   =>
 
-  (assert(option(name ?name)(hotel ?nameHotel) (location ?loc) (price (* ?nightsReq 25 ?numPeople (+ ?starHotel 1)))))
-  (retract ?subR)
-)
-
-;(assert(request(regions Calabria Puglia)(tourismTypes Montano Culturale)))
-(defrule findSolution
-  ?opt <- (option(name ?name)(location ?loc)(price ?price))
-  ?sol <- (solution(name ?nameSol&:(eq ?name ?nameSol))(locations $?locations)(price ?priceSol))
-  (test (not (member$ ?loc $?locations)))
-  =>
-  (modify ?sol(locations $?locations ?loc)(price (+ ?price ?priceSol)))
-  (retract ?opt)
-)
-
-(defrule checkPrice
-  (request(name ?nameReq)(price ?priceReq))
-  (solution(name ?name&:(eq ?name ?nameReq))(price ?price&:(> ?price ?priceReq)))
-
-  =>
-
+  (assert(solution(name ?name)(hotel ?hotel) (locations $?locations ?loc)))
 
 )
+
+;si stampano i risultati
+(defmodule PRINT-RESULT)

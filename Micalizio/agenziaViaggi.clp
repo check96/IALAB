@@ -9,27 +9,28 @@
 
 (deftemplate hotel
   (slot name)
-  (slot stars (allowed-values 1 2 3 4))
-  (slot numRooms)
+  (slot stars (type INTEGER) (allowed-values 1 2 3 4))
+  (slot numRooms (type INTEGER))
   (slot location)
 )
 
 (deftemplate request
   (slot name (default Person))
-  (slot numPeople (default 1))
+  (slot numPeople (default 1)(type INTEGER))
   (multislot regions)
   (multislot tourismTypes)
-  (slot stars (default 1))
-  (slot numLocations (default 1))
-  (slot nights (default 1))
-  (slot price)
+  (slot stars (default 1)(type INTEGER))
+  (slot minLocations (default 1) (type INTEGER))
+  (slot maxLocations (default 5) (type INTEGER))
+  (slot nights (default 1) (type INTEGER))
+  (slot price (type FLOAT))
 )
 
 (deftemplate solution
   (slot name)
   (slot hotel)
   (multislot locations)
-  (slot price (default 0))
+  (slot price (type FLOAT))
 )
 
 (deftemplate distance
@@ -46,7 +47,7 @@
   (location(name Schiavonea)(region Calabria)(tourismTypes Balneare Naturalistico))
   (location(name Camigliatello)(region Calabria)(tourismTypes Montano Naturalistico Lacustre))
   (location(name Castrovillari)(region Calabria)(tourismTypes Culturale Enogastronomico Naturalistico))
-  (location(name Bari)(region Puglia)(tourismTypes Enogastronomico))
+  (location(name Bari)(region Puglia)(tourismTypes Balneare Enogastronomico))
   (location(name Polignano)(region Puglia)(tourismTypes Balneare Enogastronomico))
   (location(name Alberobello)(region Puglia)(tourismTypes Culturale Enogastronomico))
   (location(name Matera)(region Basilicata)(tourismTypes Culturale))
@@ -56,11 +57,11 @@
 )
 
 (deffacts hotels
-  (hotel(name CastroHotel)(stars 3)(numRooms 15)(location Castrovillari))
+  (hotel(name CastroHotel)(stars 3)(numRooms 20)(location Castrovillari))
   (hotel(name SeaHotel)(stars 4)(numRooms 20)(location Schiavonea))
   (hotel(name SilaHotel)(stars 3)(numRooms 30)(location Camigliatello))
   (hotel(name TermeHotel)(stars 4)(numRooms 25)(location Lauria))
-  (hotel(name MateHotel)(stars 3)(numRooms 25)(location Matera))
+  (hotel(name MateHotel)(stars 3)(numRooms 30)(location Matera))
   (hotel(name BariHotel)(stars 3)(numRooms 30)(location Bari))
   (hotel(name PoliHotel)(stars 4)(numRooms 35)(location Polignano))
   (hotel(name Trulli)(stars 2)(numRooms 15)(location Alberobello))
@@ -117,27 +118,51 @@
 (defmodule CHOOSE (import MAIN ?ALL)(export ?ALL))
 
 (defrule defineHotel (declare (salience 100))
-  (request(name ?name)(numPeople ?numPeople)(stars ?stars))
+  (request(name ?name)(numPeople ?numPeople)(nights ?nights)(regions $?regions)(stars ?stars)(price ?price))
   (hotel(name ?nameHotel) (numRooms ?numRooms&:(>= ?numRooms ?numPeople)) (stars ?numStars&:(>= ?numStars ?stars)) (location ?loc) )
-  (location (name ?loc))
+  (location (name ?loc) (region ?region))
+  (test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
+  (test(or (= ?price 0) (<= (* ?nights 25 (+ ?numStars 1) ?numPeople) ?price)))
+
 =>
-  (assert(solution(name ?name) (hotel ?nameHotel) (locations ?loc)))
+  (assert(solution(name ?name) (hotel ?nameHotel) (locations ?loc) (price (* ?nights 25 (+ ?numStars 1) ?numPeople) )))
 )
 
 (defrule defineLocation (declare (salience 90))
-  (request(name ?name)(regions $?regions)(numLocations ?num)(tourismTypes $?tourismTypes))
-  (solution(name ?name) (hotel ?hotel) (locations $?locations))
+  (request(name ?name)(regions $?regions)(maxLocations ?num)(tourismTypes $?tourismTypes))
+  (solution(name ?name) (hotel ?hotel) (locations $?locations)(price ?price))
   (hotel(name ?hotel)(location ?location))
   (location (name ?loc&:(neq ?loc ?location)) (region ?region)(tourismTypes $? ?ttype $?))
   (test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
   (test(or(member$ ?ttype $?tourismTypes)(=(length$ $?tourismTypes) 0)))
-  (distance(from ?loc)(to ?location)(distance ?d))
-  (test(and(<= ?d 100) (< (length$ $?locations) ?num)))
+  ;(distance(from ?loc)(to ?location)(distance ?d))
+  ;(test(and(<= ?d 100) (< (length$ $?locations) ?num)))
+  (test(< (length$ $?locations) ?num))
   (test(not(member$ ?loc $?locations)))
   =>
 
-  (assert(solution(name ?name)(hotel ?hotel) (locations $?locations ?loc)))
+  (assert(solution(name ?name)(hotel ?hotel) (locations $?locations ?loc) (price ?price)))
 
+)
+
+(defrule deleteDuplicates (declare (salience 80))
+  ?sol <- (solution(hotel ?hotel)(locations $?loc1))
+  (solution(hotel ?hotel)(locations $?loc2&~$?loc1))
+  (test(=(length$ $?loc1) (length$ $?loc2)))
+  (test(subsetp $?loc1 $?loc2))
+
+  =>
+
+  (retract ?sol)
+
+)
+
+(defrule deleteForNum (declare(salience 60))
+  (request(name ?name)(minLocations ?min)(maxLocations ?max))
+  ?sol <- (solution(name ?name) (locations $?locations&:(or(< (length$ $?locations) ?min) (> (length$ $?locations) ?max) )))
+
+  =>
+  (retract ?sol)
 )
 
 ;si stampano i risultati

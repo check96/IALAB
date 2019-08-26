@@ -117,9 +117,16 @@
   ;dalle richieste si scelgono delle possiblili soluzioni
 (defmodule CHOOSE (import MAIN ?ALL)(export ?ALL))
 
+(deffunction division (?val)
+
+  (if (>(mod ?val 2) 0) then 
+     (+(div ?val 2)1)
+  else (div ?val 2))
+)
+
 (defrule defineHotel (declare (salience 100))
   (request(name ?name)(numPeople ?numPeople)(nights ?nights)(regions $?regions)(stars ?stars)(price ?price))
-  (hotel(name ?nameHotel) (numRooms ?numRooms&:(>= ?numRooms ?numPeople)) (stars ?numStars&:(>= ?numStars ?stars)) (location ?loc) )
+  (hotel(name ?nameHotel) (numRooms ?numRooms&:(>= ?numRooms (division ?numPeople)))) (stars ?numStars&:(>= ?numStars ?stars)) (location ?loc) )
   (location (name ?loc) (region ?region))
   (test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
   (test(or (= ?price 0) (<= (* ?nights 25 (+ ?numStars 1) ?numPeople) ?price)))

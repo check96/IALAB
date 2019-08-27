@@ -151,23 +151,57 @@
 
 (defrule start (declare(salience 100))
 =>
-  (focus CHOOSE)
+  (focus REQUEST CHOOSE)
 )
 
   ;prende la richiesta dell'utente e ne scompone le parti
 (defmodule REQUEST)
 
-;deve avere priorità più alta
-;   (defrule read (declare(salience 1000))
-;=>
-;   (printout t "inserisci richiesta")
-;   (bind ?line (readline))
-;   (assert (answer (request ?line)))
-;)
 
+(deftemplate answer
+   (multislot value))
 
-    ; regola o funzione che prese le parti dell'input va a riempire gli slot della richiesta
-;(defrule::REQUEST fillRequest)
+(defrule read
+  =>
+    (printout t "inserisci richiesta" crlf)
+    (bind ?line (readline))
+    (assert (answer (value (explode$ ?line))))
+)
+
+(defrule modifyRequest
+  ?f <- (request (name Person) (numPeople ?np) (regions $?r) (tourismTypes $?tp) (stars ?s) (minLocations ?minl) (maxLocations ?maxl) (nights ?n) (price ?p))
+  (answer (value $?v))
+  =>
+  (loop-for-count(?cnt 1 (length$ $?v))
+
+    (if (or (eq (nth$ ?cnt $?v) giorno) (eq(nth$ ?cnt $?v) giorni) (eq(nth$ ?cnt $?v) notte) (eq(nth$ ?cnt $?v) notti)) then
+        (if (neq ?n (nth$ (- ?cnt 1) $?v)) then
+          (modify ?f (nights (nth$ (- ?cnt 1) $?v)))))
+
+    (if (or (eq (nth$ ?cnt $?v) stella) (eq (nth$ ?cnt $?v) stelle)) then
+        (if (neq ?s (nth$ (- ?cnt 1) $?v)) then
+          (modify ?f (stars (nth$ (- ?cnt 1) $?v)))))
+
+    (if (or (eq (nth$ ?cnt $?v) luogo) (eq (nth$ ?cnt $?v) luoghi)) then
+
+      (if (or (eq (nth$ (- ?cnt 2) $?v) almeno) (eq (nth$ (- ?cnt 2) $?v) minimo)) then
+        (if (neq ?minl (nth$ (- ?cnt 1) $?v)) then
+              (modify ?f (minLocations (nth$ (- ?cnt 1) $?v)))))
+
+        (if (eq (nth$ (- ?cnt 2) $?v) massimo) then
+          (if (neq ?maxl (nth$ (- ?cnt 1) $?v)) then
+              (modify ?f (maxLocations (nth$ (- ?cnt 1) $?v))))))
+            
+    (if (eq (nth$ ?cnt $?v) euro) then
+        (if (neq ?p (nth$ (- ?cnt 1) $?v)) then
+          (modify ?f (price (nth$ (- ?cnt 1) $?v)))))
+  
+    (if (or (eq (nth$ ?cnt $?v) persona) (eq (nth$ ?cnt $?v) persone)) then
+        (if (neq ?np (nth$ (- ?cnt 1) $?v)) then
+          (modify ?f (numPeople (nth$ (- ?cnt 1) $?v)))))
+
+  )
+)
 
   ;dalle richieste si scelgono delle possiblili soluzioni
 (defmodule CHOOSE (import MAIN ?ALL)(export ?ALL))

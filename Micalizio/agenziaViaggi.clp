@@ -258,9 +258,6 @@
 (defmodule PRINT-RESULT)
 
 
-
-;input
-;aggiornamento request
 ;certan factor con valore sullo score
 ;aggiornare fatti dopo la richiesta
 ;aggiungere not member sulle regioni

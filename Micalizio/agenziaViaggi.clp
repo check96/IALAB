@@ -14,16 +14,19 @@
   (slot location)
 )
 
+
 (deftemplate request
   (slot name (default Person))
-  (slot numPeople (default 1)(type INTEGER))
+  (multislot numPeople (default 1)(type INTEGER))
   (multislot regions)
+  (multislot notregions)
   (multislot tourismTypes)
-  (slot stars (default 1)(type INTEGER))
-  (slot minLocations (default 1) (type INTEGER))
-  (slot maxLocations (default 5) (type INTEGER))
-  (slot nights (default 1) (type INTEGER))
-  (slot price (type FLOAT))
+  (multislot nottourismTypes)
+  (multislot stars (default 1)(type INTEGER))
+  (multislot minLocations (default 1) (type INTEGER))
+  (multislot maxLocations (default 5) (type INTEGER))
+  (multislot nights (default 1) (type INTEGER))
+  (multislot price (default 1) (type INTEGER))
 )
 
 (deftemplate solution
@@ -149,60 +152,122 @@
   (assert(distance(from ?b)(to ?a)(distance ?d)))
 )
 
+(deffunction ask-question (?question)
+   (printout t ?question)
+   (bind $?answer (readline))
+   (if (lexemep ?answer) then (bind $?answer (lowcase $?answer)))
+   $?answer)
+
 (defrule start (declare(salience 100))
-=>
-  (focus REQUEST CHOOSE)
+  =>
+  (assert (request))
+  (focus QUESTION REQUEST CHOOSE)
 )
 
-  ;prende la richiesta dell'utente e ne scompone le parti
+(defrule combine-certainties ""
+  (declare (salience 10)
+           (auto-focus TRUE))
+  ?rem1 <- (attribute (name ?rel) (value ?val) (certainty ?per1))
+  ?rem2 <- (attribute (name ?rel) (value ?val) (certainty ?per2))
+  (test (neq ?rem1 ?rem2))
+  =>
+  (retract ?rem1)
+  (modify ?rem2 (certainty (/ (- (* 100 (+ ?per1 ?per2)) (* ?per1 ?per2)) 100))))
+
+(defmodule QUESTIONS (import MAIN ?ALL) (export ?ALL))
+
+(deftemplate question
+   (slot attribute (default ?NONE))
+   (slot the-question (default ?NONE))
+   (slot already-asked (default FALSE)))
+   
+(defrule ask-a-question
+   ?f <- (question (already-asked FALSE)
+                   (the-question ?the-question)
+                   (attribute ?the-attribute))
+   =>
+   (modify ?f (already-asked TRUE))
+   (assert (attribute (name ?the-attribute)
+                      (value (explode$ (ask-question ?the-question))))))
+
+(defmodule ARRTIBUTE-QUESTIONS (import QUESTIONS ?ALL))
+
+(deffacts question-attributes
+
+  (question (attribute numPeople)
+            (the-question "quante persone siete? inserire numero "))
+  (question (attribute nights)
+            (the-question "durata della vacanza? inserire numero "))
+  (question (attribute minLocations)
+            (the-question "numero minimo di località da visitare? inserire numero "))
+  (question (attribute maxLocations)
+            (the-question "numero massimp di località da visitare? inserire numero "))
+  (question (attribute stars)
+            (the-question "quante stelle deve avere l'albergo dove pernotterete? inserire numero "))
+  (question (attribute price)
+            (the-question "quanto vuole spendere? inserire valore "))
+  (question (attribute regions)
+            (the-question "preferenze su regioni da visitare? inserire nome delle regioni "))
+  (question (attribute notregions)
+            (the-question "ci sono delle regioni che non vuole visitare? inserire nome delle regioni "))
+  (question (attribute tourismTypes)
+            (the-question "località davisitare? inserire tipo delle località "))
+  (question (attribute nottourismTypes)
+            (the-question "ci sono delle località che non vuole visitare? inserire tipo delle località ")))
+
+
+
+
+
+;prende la richiesta dell'utente e ne scompone le parti e riempie i valori di request
 (defmodule REQUEST)
 
-
-(deftemplate answer
-   (multislot value))
-
-(defrule read
+(defrule compile
+  (attribute (name ?n) (value $?v))
+  ?f <- (request (name Person) (numPeople $?np) (regions $?r) (notregions $?nr) (tourismTypes $?tp) (nottourismTypes $?ntp) (stars $?s) (minLocations $?minl) (maxLocations $?maxl) (nights $?nit) (price $?p))
   =>
-    (printout t "inserisci richiesta" crlf)
-    (bind ?line (readline))
-    (assert (answer (value (explode$ ?line))))
+
+  (if(eq ?n numPeople) then
+    (if (not (subsetp $?v ?np)) then
+      (modify ?f (numPeople ?v))))
+
+  (if(eq ?n regions) then
+    (if (neq $?v $?r) then
+      (modify ?f (regions $?v))))
+
+  (if(eq ?n notregions) then
+    (if (not (subsetp $?v $?nr)) then
+      (modify ?f (notregions $?v))))
+
+  (if(eq ?n tourismTypes) then
+    (if (not (subsetp $?v $?tp)) then
+      (modify ?f (tourismTypes $?v))))
+
+  (if(eq ?n nottourismTypes) then
+    (if (not (subsetp $?v $?ntp)) then
+      (modify ?f (nottourismTypes $?v))))
+
+  (if(eq ?n stars) then
+    (if (neq $?v ?s) then
+      (modify ?f (stars $?v))))
+
+  (if(eq ?n minLocations) then
+    (if (neq $?v ?minl) then
+      (modify ?f (minLocations $?v))))
+
+  (if(eq ?n maxLocations) then
+    (if (neq $?v ?maxl) then
+      (modify ?f (maxLocations $?v))))
+
+  (if(eq ?n nights) then
+    (if (neq $?v ?nit) then
+      (modify ?f (nights $?v))))
+
+  (if(eq ?n price) then
+    (if (neq $?v ?p) then
+      (modify ?f (price $?v))))
+
 )
-
-(defrule modifyRequest
-  ?f <- (request (name Person) (numPeople ?np) (regions $?r) (tourismTypes $?tp) (stars ?s) (minLocations ?minl) (maxLocations ?maxl) (nights ?n) (price ?p))
-  (answer (value $?v))
-  =>
-  (loop-for-count(?cnt 1 (length$ $?v))
-
-    (if (or (eq (nth$ ?cnt $?v) giorno) (eq(nth$ ?cnt $?v) giorni) (eq(nth$ ?cnt $?v) notte) (eq(nth$ ?cnt $?v) notti)) then
-        (if (neq ?n (nth$ (- ?cnt 1) $?v)) then
-          (modify ?f (nights (nth$ (- ?cnt 1) $?v)))))
-
-    (if (or (eq (nth$ ?cnt $?v) stella) (eq (nth$ ?cnt $?v) stelle)) then
-        (if (neq ?s (nth$ (- ?cnt 1) $?v)) then
-          (modify ?f (stars (nth$ (- ?cnt 1) $?v)))))
-
-    (if (or (eq (nth$ ?cnt $?v) luogo) (eq (nth$ ?cnt $?v) luoghi)) then
-
-      (if (or (eq (nth$ (- ?cnt 2) $?v) almeno) (eq (nth$ (- ?cnt 2) $?v) minimo)) then
-        (if (neq ?minl (nth$ (- ?cnt 1) $?v)) then
-              (modify ?f (minLocations (nth$ (- ?cnt 1) $?v)))))
-
-        (if (eq (nth$ (- ?cnt 2) $?v) massimo) then
-          (if (neq ?maxl (nth$ (- ?cnt 1) $?v)) then
-              (modify ?f (maxLocations (nth$ (- ?cnt 1) $?v))))))
-            
-    (if (eq (nth$ ?cnt $?v) euro) then
-        (if (neq ?p (nth$ (- ?cnt 1) $?v)) then
-          (modify ?f (price (nth$ (- ?cnt 1) $?v)))))
-  
-    (if (or (eq (nth$ ?cnt $?v) persona) (eq (nth$ ?cnt $?v) persone)) then
-        (if (neq ?np (nth$ (- ?cnt 1) $?v)) then
-          (modify ?f (numPeople (nth$ (- ?cnt 1) $?v)))))
-
-  )
-)
-
   ;dalle richieste si scelgono delle possiblili soluzioni
 (defmodule CHOOSE (import MAIN ?ALL)(export ?ALL))
 

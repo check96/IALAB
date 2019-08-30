@@ -15,22 +15,22 @@
 
 (deftemplate request
   (slot name (default Person))
-  (multislot numPeople (default 1)(type INTEGER))
-  (multislot regions)
+  (slot numPeople (default 2)(type INTEGER))
+  (multislot regions (default Calabria Puglia))
   (multislot notregions)
-  (multislot tourismTypes)
+  (multislot tourismTypes (default Balneare))
   (multislot nottourismTypes)
-  (multislot stars (default 1)(type INTEGER))
-  (multislot minLocations (default 1) (type INTEGER))
-  (multislot maxLocations (default 5) (type INTEGER))
-  (multislot nights (default 1) (type INTEGER))
-  (multislot price (default 1) (type INTEGER))
+  (slot stars (default 3)(type INTEGER))
+  (slot minLocations (default 1) (type INTEGER))
+  (slot maxLocations (default 5) (type INTEGER))
+  (slot nights (default 1) (type INTEGER))
+  (slot price (default 600) (type INTEGER))
 )
 
 (deftemplate option
   (slot name)
   (slot hotel)
-  (slot nights (default 1))
+  (slot nights (default 0))
   (multislot locations)
   (slot price (type FLOAT))
 )
@@ -62,6 +62,17 @@
   (slot price (type FLOAT))
 )
 
+(deftemplate region
+  (slot name)
+  (multislot visited)
+)
+
+(deffacts regions
+  (region(name Calabria))
+  (region(name Puglia))
+  (region(name Basilicata))
+  (region(name Campania))
+)
 
 (deffacts locations
   (location(name Schiavonea)(region Calabria)(tourismTypes Balneare Naturalistico))
@@ -91,6 +102,7 @@
 )
 
 (deffacts distances
+  (distance(from Castrovillari)(to Castrovillari)(distance 1))
   (distance(from Castrovillari)(to Schiavonea)(distance 44))
   (distance(from Castrovillari)(to Camigliatello)(distance 97))
   (distance(from Castrovillari)(to Lauria)(distance 58))
@@ -100,6 +112,7 @@
   (distance(from Castrovillari)(to Polignano)(distance 200))
   (distance(from Castrovillari)(to Napoli)(distance 246))
   (distance(from Castrovillari)(to Caserta)(distance 264))
+  (distance(from Schiavonea)(to Schiavonea)(distance 1))
   (distance(from Schiavonea)(to Camigliatello)(distance 60))
   (distance(from Schiavonea)(to Bari)(distance 197))
   (distance(from Schiavonea)(to Alberobello)(distance 126))
@@ -108,6 +121,7 @@
   (distance(from Schiavonea)(to Lauria)(distance 99))
   (distance(from Schiavonea)(to Napoli)(distance 290))
   (distance(from Schiavonea)(to Caserta)(distance 307))
+  (distance(from Lauria)(to Lauria)(distance 1))
   (distance(from Lauria)(to Camigliatello)(distance 159))
   (distance(from Lauria)(to Bari)(distance 211))
   (distance(from Lauria)(to Alberobello)(distance 194))
@@ -115,27 +129,34 @@
   (distance(from Lauria)(to Matera)(distance 145))
   (distance(from Lauria)(to Napoli)(distance 198))
   (distance(from Lauria)(to Caserta)(distance 215))
+  (distance(from Camigliatello)(to Camigliatello)(distance 1))
   (distance(from Camigliatello)(to Bari)(distance 294))
   (distance(from Camigliatello)(to Alberobello)(distance 266))
   (distance(from Camigliatello)(to Polignano)(distance 283))
   (distance(from Camigliatello)(to Matera)(distance 236))
   (distance(from Camigliatello)(to Napoli)(distance 342))
   (distance(from Camigliatello)(to Caserta)(distance 361))
+  (distance(from Bari)(to Bari)(distance 1))
   (distance(from Bari)(to Alberobello)(distance 55))
   (distance(from Bari)(to Polignano)(distance 36))
   (distance(from Bari)(to Matera)(distance 65))
   (distance(from Bari)(to Napoli)(distance 266))
   (distance(from Bari)(to Caserta)(distance 260))
+  (distance(from Alberobello)(to Alberobello)(distance 1))
   (distance(from Alberobello)(to Polignano)(distance 29))
   (distance(from Alberobello)(to Matera)(distance 68))
   (distance(from Alberobello)(to Napoli)(distance 316))
   (distance(from Alberobello)(to Caserta)(distance 318))
+  (distance(from Polignano)(to Polignano)(distance 1))
   (distance(from Polignano)(to Matera)(distance 73))
   (distance(from Polignano)(to Napoli)(distance 298))
   (distance(from Polignano)(to Caserta)(distance 292))
+  (distance(from Matera)(to Matera)(distance 1))
   (distance(from Matera)(to Napoli)(distance 251))
   (distance(from Matera)(to Caserta)(distance 256))
+  (distance(from Napoli)(to Napoli)(distance 1))
   (distance(from Napoli)(to Caserta)(distance 33))
+  (distance(from Caserta)(to Caserta)(distance 1))
 )
 
 (deffacts scores
@@ -240,15 +261,11 @@
 (deffunction ask-question (?question)
    (printout t ?question crlf)
    (bind $?answer (readline))
-   (if (lexemep ?answer)
-      then
-       (bind $?answer (lowcase $?answer))
-   )
    $?answer)
 
 (defrule start (declare(salience 100))
   =>
-  (assert (request))
+  (assert (request) (print-sorted))
   (focus QUESTIONS REQUEST CHOOSE)
 )
 
@@ -283,7 +300,7 @@
   (question (attribute notregions)
             (the-question "ci sono delle regioni che non vuole visitare? inserire nome delle regioni "))
   (question (attribute tourismTypes)
-            (the-question "località davisitare? inserire tipo delle località "))
+            (the-question "località da visitare? inserire tipo delle località "))
   (question (attribute nottourismTypes)
             (the-question "ci sono delle località che non vuole visitare? inserire tipo delle località "))
 )
@@ -292,68 +309,40 @@
    ?f <- (question (already-asked FALSE)
                    (the-question ?the-question)
                    (attribute ?the-attribute))
+
    =>
    (modify ?f (already-asked TRUE))
    (assert (attribute (name ?the-attribute)
                       (value (explode$ (ask-question ?the-question)))))
 )
 
-
-
-
   ;prende la richiesta dell'utente e ne scompone le parti e riempie i valori di request
 (defmodule REQUEST (import QUESTIONS ?ALL)(export ?ALL))
 
 (defrule compile
   (attribute(name ?n)(value $?v))
-  ?f <- (request (name Person) (numPeople $?np) (regions $?r) (notregions $?nr) (tourismTypes $?tp) (nottourismTypes $?ntp) (stars $?s) (minLocations $?minl) (maxLocations $?maxl) (nights $?nit) (price $?p))
+  (test(or(neq ?v no)(neq ?v \n)))
+  ?r <- (request)
+
   =>
 
-  (if(eq ?n numPeople) then
-    (if (not (subsetp $?v ?np)) then
-      (modify ?f (numPeople ?v))))
-
-  (if(eq ?n regions) then
-    (if (neq $?v $?r) then
-      (modify ?f (regions $?v))))
-
-  (if(eq ?n notregions) then
-    (if (not (subsetp $?v $?nr)) then
-      (modify ?f (notregions $?v))))
-
-  (if(eq ?n tourismTypes) then
-    (if (not (subsetp $?v $?tp)) then
-      (modify ?f (tourismTypes $?v))))
-
-  (if(eq ?n nottourismTypes) then
-    (if (not (subsetp $?v $?ntp)) then
-      (modify ?f (nottourismTypes $?v))))
-
-  (if(eq ?n stars) then
-    (if (neq $?v ?s) then
-      (modify ?f (stars $?v))))
-
-  (if(eq ?n minLocations) then
-    (if (neq $?v ?minl) then
-      (modify ?f (minLocations $?v))))
-
-  (if(eq ?n maxLocations) then
-    (if (neq $?v ?maxl) then
-      (modify ?f (maxLocations $?v))))
-
-  (if(eq ?n nights) then
-    (if (neq $?v ?nit) then
-      (modify ?f (nights $?v))))
-
-  (if(eq ?n price) then
-    (if (neq $?v ?p) then
-      (modify ?f (price $?v)))
+  (switch ?n
+    (case numPeople then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (numPeople (nth$ 1 ?v)))))
+    (case regions then (modify ?r (regions ?v)))
+    (case notregions then (modify ?r (notregions ?v)))
+    (case tourismTypes then (modify ?r (tourismTypes ?v)))
+    (case nottourismTypes then (modify ?r (nottourismTypes ?v)))
+    (case stars then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (stars (nth$ 1 ?v)))))
+    (case minLocations then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (minLocations (nth$ 1 ?v)))))
+    (case maxLocations then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (maxLocations (nth$ 1 ?v)))))
+    (case nights then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (nights (nth$ 1 ?v)))))
+    (case price then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (price (nth$ 1 ?v)))))
   )
+
 )
 
-
-  ;dalle richieste si scelgono delle possiblili optuzioni
-(defmodule CHOOSE (import MAIN ?ALL)(export ?ALL))
+  ;dalle richieste si scelgono delle possiblili opzioni
+(defmodule CHOOSE (import MAIN ?ALL )(export ?ALL))
 
 (defrule defineHotel (declare (salience 100))
   (request(name ?name)(numPeople ?numPeople)(regions $?regions)(notregions $?banned)(stars ?minStars)(price ?price))
@@ -365,16 +354,15 @@
   (test(or (= ?price 0) (<= (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?price)))
 
 =>
-  (assert(option(name ?name) (hotel ?nameHotel) (locations ?loc) (price (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
+  (assert(option(name ?name) (hotel ?nameHotel) (locations ?loc) (nights 1)(price (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
 )
 
 (defrule defineLocations (declare (salience 90))
   (option(name ?name) (hotel ?hotel)(nights ?nights) (locations $?locations))
-  (request(name ?name)(numPeople ?numPeople)(regions $?regions)(nights ?nightsReq&:(> ?nightsReq (+ ?nights 1)))(maxLocations ?num)(tourismTypes $?tourismTypes) (price ?priceReq))
+  (request(name ?name)(numPeople ?numPeople)(regions $?regions)(nights ?nightsReq) (maxLocations ?num)(tourismTypes $?tourismTypes) (price ?priceReq))
   (hotel(name ?hotel)(location ?location)(stars ?numStars))
   (location (name ?loc&:(neq ?loc ?location)) (region ?region)(tourismTypes $? ?ttype $?))
   (distance(from ?loc)(to ?location)(distance ?d))
-
   (test(or (= ?priceReq 0) (<= (* (+ ?nights 1) 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq)))
   (test(or(member$ ?region $?regions)(=(length$ $?regions) 0) (<= ?d 100)))
   (test(or(member$ ?ttype $?tourismTypes)(=(length$ $?tourismTypes) 0)))
@@ -395,7 +383,7 @@
   (retract ?opt)
 )
 
-(defrule deleteForNum (declare(salience 60))
+(defrule deleteForNum (declare(salience 70))
   (request(name ?name)(minLocations ?min)(maxLocations ?max))
   ?opt <- (option(name ?name) (locations $?locations&:(or(< (length$ $?locations) ?min) (> (length$ $?locations) ?max) )))
 
@@ -403,16 +391,29 @@
   (retract ?opt)
 )
 
-(defrule deleteIncompleteByRegion
-  (request(name ?name) (regions $?regions) (tourismTypes $?tourismTypes))
-  ?sol <- (solution(name ?name) (locations $?locations))
-
-=>
-  (if(any-factp ((?loc location)) (and (member$ ?loc:region $?regions) (member$ ?loc:name $?locations)) )   then
-      (retract ?sol)
-  )
-  ;(printout t ?f crlf)
+(defrule findVisitedRegions (declare (salience 65))
+  ?opt <- (option(name ?name) (locations $? ?location $?))
+  (location(name ?location)(region ?region))
+  ?reg <- (region (name ?region) (visited $?visited))
+  (test(not(member$ ?opt $?visited)))
+  =>
+  (modify ?reg (visited $?visited ?opt))
 )
+
+(defrule deleteIncompleteByRegion (declare (salience 60))
+  (request(name ?name) (regions $? ?region $?))
+  ?opt <- (option(name ?name))
+  (region (name ?region) (visited $?visited))
+  (test(not(member$ ?opt $?visited)))
+  =>
+  (retract ?opt)
+)
+
+;(defrule resetVisited (declare(salience -5))
+;  ?reg <- (region)
+;  =>
+;  (modify ?reg (visited (create$ )))
+;)
 
 (defrule CF_Price (declare(salience 50))
 
@@ -422,9 +423,11 @@
 =>
   (if(> ?priceReq 0)
     then
-      (assert(oav(option ?opt) (attribute price) (value ?price)(certain (* (- ?price ?priceReq) 0.01))))
+      (bind ?c (mod(*(- ?price ?priceReq -1) 0.01) 1))
+      (assert(oav(option ?opt) (attribute price) (value ?price)(certain (abs ?c))))
     else
-      (assert(oav(option ?opt) (attribute price) (value ?price) (certain (/ (/ 100 ?price) (* ?nights (div (+ ?numPeople 1) 2))))))
+      (bind ?c (/ (/ 100 ?price) (* ?nights (div (+ ?numPeople 1) 2))))
+      (assert(oav(option ?opt) (attribute price) (value ?price) (certain (abs ?c))))
   )
 )
 
@@ -436,43 +439,62 @@
   (assert(oav(option ?opt) (attribute yetUsed) (value yes)(certain 0.4)))
 )
 
-(defglobal ?*certain* = 1)
+(defglobal ?*value* = 0)
 (defrule CF_score (declare(salience 30))
 
   (request(name ?name)(tourismTypes $?tourismTypes))
   ?opt <- (option (name ?name) (locations $?locations))
 
 =>
-  (do-for-all-facts
-    ((?s score)) (and(member$ ?s:location $?locations)(member$ ?s:tourismType $?tourismTypes))
-    (bind ?*certain* (* ?*certain* ?s:score 0.2))
-  )
-  (assert(oav(option ?opt) (attribute score)(certain ?*certain*)))
-  (bind ?*certain* 1)
+    (do-for-all-facts
+      ((?s score)) (and(member$ ?s:location $?locations) (or(member$ ?s:tourismType $?tourismTypes)(= (length$ $?tourismTypes) 0)))
+      (bind ?*value* (+ ?*value* ?s:score))
+    )
+    (assert(oav(option ?opt) (attribute score)(value ?*value*)(certain (- 1(/ ?*value* 100)))))
+    (bind ?*value* 0)
 )
 
-;(defrule CF_distances (declare(salience 20)
-;  ?check <- (check(distances no))
-;  =>
-;   (modify ?check (distances yes))
-  ;********************* calcolare certain
-;  (assert(oav(option ?opt) (type distances) (certain ))))
-;)
+(defrule CF_distances (declare(salience 20))
+  ?opt <- (option(name ?name)(hotel ?hotel)(locations $? ?loc $?))
+  (hotel(name ?hotel)(location ?loc1))
+  (distance(from ?loc)(to ?loc1) (distance ?d))
+  =>
+  (assert(oav(option ?opt) (attribute distances) (value ?loc) (certain (- 100 ?d))))
+)
+
+(defrule combineCF_distances (declare(salience 15))
+  ?oav1 <- (oav(option ?opt)(attribute distances) (value ?v) (certain ?c))
+  ?oav2 <- (oav(option ?opt)(attribute distances) (value ?v1& ~?v)(certain ?c1))
+  =>
+  (retract ?oav1)
+  (modify ?oav2 (value (str-cat ?v ?v1))(certain (+ ?c ?c1)))
+)
+
+(defrule deleteForDistance (declare(salience 13))
+  ?opt <- (option)
+  ?oavD <- (oav(option ?opt)(attribute distances)(certain ?c&:(< ?c -150)))
+  ?oavP <- (oav(option ?opt)(attribute price))
+  ?oavS <- (oav(option ?opt)(attribute score))
+  =>
+  (retract ?opt ?oavS ?oavP ?oavD)
+)
 
 (defrule combineCF (declare(salience 10))
-  ?opt1 <- (oav(option ?opt) (attribute ?attribute1) (certain ?C1))
-  ?opt2 <- (oav(option ?opt) (attribute ~?attribute1) (certain ?C2))
+  ?oavP <- (oav(option ?opt) (attribute price) (certain ?CP))
+  ?oavD <- (oav(option ?opt) (attribute distances) (certain ?CD))
+  ?oavS <- (oav(option ?opt) (attribute score) (certain ?CS))
   =>
-  (retract ?opt1)
-  (bind ?C3 (- (+ ?C1 ?C2) (* ?C1 ?C2)))
-  (modify ?opt2 (certain ?C3))
+  (retract ?oavP ?oavD)
+  (bind ?CT (* ?CP ?CD ?CS))
+;  (printout t "option " ?opt "  score " ?CS "  price " ?CP "  distances " ?CD "  totale " ?CT crlf)
+  (modify ?oavS (attribute all)(certain (abs ?CT)))
+  (focus PRINT)
 )
 
 ;si stampano i risultati
-(defmodule PRINT-RESULT)
+(defmodule PRINT (import MAIN ?ALL))
 
-(defrule assert-unprinted "Asserts each item that needs to be printed."
-  (print-sorted)
+(defrule assert-unprinted "Asserts each item that needs to be printed." (declare(salience 20))
   ?opt <- (option)
   =>
   (assert (unprinted ?opt))
@@ -482,19 +504,28 @@
   (declare (salience -10))
   ?f <- (print-sorted)
   =>
-  (retract ?f)
+  ;(retract ?f)
 )
 
-;(defrule print-sorted
-;  (not (print-sorted))
-;  ?u <- (unprinted ?opt)
-;  (oav(option ?opt) (certain ?certain))
-;  (forall(and (unprinted ?opt1) (oav (option ?opt1) (certain ?c)))
-;      (test(<= ?c ?certain)))
-;  =>
-;  (retract ?u)
-;  (printout t ?opt crlf)
-;)
+(defglobal ?*count* = 0)
+
+(defrule print-sorted (declare(salience 10))
+
+  ?opt <- (option (hotel ?hotel) (locations $?locations) (price ?price))
+  ?u <- (unprinted ?opt)
+  (oav(option ?opt) (attribute all) (certain ?certain))
+
+  (forall(and (unprinted ?opt1) (oav (option ?opt1) (attribute all)(certain ?c)))
+      (test(>= ?certain ?c)))
+  =>
+  (retract ?u)
+;  (if(< ?*count* 5)
+;    then
+      (printout t "hotel " ?hotel " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
+;  )
+  (bind ?*count* (+ ?*count* 1))
+
+)
 
 ;input
 ;aggiornamento request

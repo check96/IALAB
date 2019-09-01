@@ -15,16 +15,18 @@
 
 (deftemplate request
   (slot name (default Person))
-  (slot numPeople (default 2)(type INTEGER))
-  (multislot regions (default Calabria Puglia))
+  (slot numPeople (default 1)(type INTEGER))
+  (multislot regions)
   (multislot notregions)
-  (multislot tourismTypes (default Balneare))
+  (multislot tourismTypes)
   (multislot nottourismTypes)
-  (slot stars (default 3)(type INTEGER))
+  (slot stars (default 1)(type INTEGER))
   (slot minLocations (default 1) (type INTEGER))
   (slot maxLocations (default 5) (type INTEGER))
+  (multislot arrivalDate)
+  (multislot awayDate)
   (slot nights (default 1) (type INTEGER))
-  (slot price (default 600) (type INTEGER))
+  (slot price (default 0) (type INTEGER))
 )
 
 (deftemplate option
@@ -32,6 +34,18 @@
   (slot hotel)
   (slot nights (default 0))
   (multislot locations)
+  (multislot arrivalDate)
+  (multislot awayDate)
+  (slot price (type FLOAT))
+)
+
+(deftemplate reservation
+  (slot name)
+  (slot hotel)
+  (slot nights (default 1))
+  (multislot locations)
+  (multislot arrivalDate)
+  (multislot awayDate)
   (slot price (type FLOAT))
 )
 
@@ -44,7 +58,7 @@
 (deftemplate score
   (slot location)
   (slot tourismType)
-  (slot score (type INTEGER) (default 1) (range 1 5))
+  (slot score (type INTEGER) (default 0) (range 0 5))
 )
 
 (deftemplate oav
@@ -54,17 +68,23 @@
   (slot certain (default 1))
 )
 
-(deftemplate solution
-  (slot name)
-  (slot hotel)
-  (slot nights (default 1))
-  (multislot locations)
-  (slot price (type FLOAT))
-)
-
 (deftemplate region
   (slot name)
   (multislot visited)
+)
+
+(deftemplate user
+  (slot name (default Person))
+  (slot numPeople (type INTEGER))
+  (multislot regions)
+  (multislot notregions)
+  (multislot tourismTypes)
+  (multislot nottourismTypes)
+  (slot stars (type INTEGER))
+  (slot minLocations (type INTEGER))
+  (slot maxLocations (type INTEGER))
+  (slot nights (type INTEGER))
+  (slot price (type INTEGER))
 )
 
 (deffacts regions
@@ -98,7 +118,6 @@
   (hotel(name Trulli)(stars 2)(numRooms 15)(location Alberobello))
   (hotel(name VesuvioHotel)(stars 3)(numRooms 45)(location Napoli))
   (hotel(name Reggia)(stars 4)(numRooms 50)(location Caserta))
-
 )
 
 (deffacts distances
@@ -161,95 +180,47 @@
 
 (deffacts scores
   (score(location Schiavonea) (tourismType Balneare) (score 3))
-  (score(location Schiavonea) (tourismType Montano) (score 1))
-  (score(location Schiavonea) (tourismType Lacustre) (score 1))
   (score(location Schiavonea) (tourismType Naturalistico) (score 4))
-  (score(location Schiavonea) (tourismType Termale) (score 1))
   (score(location Schiavonea) (tourismType Culturale) (score 1))
   (score(location Schiavonea) (tourismType Religioso) (score 1))
-  (score(location Schiavonea) (tourismType Sportivo) (score 1))
   (score(location Schiavonea) (tourismType Enogastronomico) (score 1))
-  (score(location Camigliatello) (tourismType Balneare) (score 1))
   (score(location Camigliatello) (tourismType Montano) (score 5))
   (score(location Camigliatello) (tourismType Lacustre) (score 3))
   (score(location Camigliatello) (tourismType Naturalistico) (score 4))
-  (score(location Camigliatello) (tourismType Termale) (score 1))
-  (score(location Camigliatello) (tourismType Culturale) (score 1))
-  (score(location Camigliatello) (tourismType Religioso) (score 1))
-  (score(location Camigliatello) (tourismType Sportivo) (score 1))
-  (score(location Camigliatello) (tourismType Enogastronomico) (score 1))
-  (score(location Castrovillari) (tourismType Balneare) (score 1))
-  (score(location Castrovillari) (tourismType Montano) (score 1))
-  (score(location Castrovillari) (tourismType Lacustre) (score 1))
+  (score(location Camigliatello) (tourismType Enogastronomico) (score 3))
   (score(location Castrovillari) (tourismType Naturalistico) (score 5))
-  (score(location Castrovillari) (tourismType Termale) (score 1))
   (score(location Castrovillari) (tourismType Culturale) (score 3))
-  (score(location Castrovillari) (tourismType Religioso) (score 1))
-  (score(location Castrovillari) (tourismType Sportivo) (score 1))
+  (score(location Castrovillari) (tourismType Sportivo) (score 3))
   (score(location Castrovillari) (tourismType Enogastronomico) (score 4))
-  (score(location Matera) (tourismType Balneare) (score 1))
-  (score(location Matera) (tourismType Montano) (score 1))
-  (score(location Matera) (tourismType Lacustre) (score 1))
-  (score(location Matera) (tourismType Naturalistico) (score 1))
-  (score(location Matera) (tourismType Termale) (score 1))
+  (score(location Matera) (tourismType Naturalistico) (score 3))
   (score(location Matera) (tourismType Culturale) (score 4))
-  (score(location Matera) (tourismType Religioso) (score 1))
-  (score(location Matera) (tourismType Sportivo) (score 1))
-  (score(location Matera) (tourismType Enogastronomico) (score 1))
-  (score(location Lauria) (tourismType Balneare) (score 1))
-  (score(location Lauria) (tourismType Montano) (score 1))
+  (score(location Matera) (tourismType Enogastronomico) (score 2))
+  (score(location Lauria) (tourismType Montano) (score 2))
   (score(location Lauria) (tourismType Lacustre) (score 4))
-  (score(location Lauria) (tourismType Naturalistico) (score 1))
+  (score(location Lauria) (tourismType Naturalistico) (score 3))
   (score(location Lauria) (tourismType Termale) (score 2))
-  (score(location Lauria) (tourismType Culturale) (score 1))
-  (score(location Lauria) (tourismType Religioso) (score 1))
-  (score(location Lauria) (tourismType Sportivo) (score 1))
-  (score(location Lauria) (tourismType Enogastronomico) (score 1))
   (score(location Bari) (tourismType Balneare) (score 5))
-  (score(location Bari) (tourismType Montano) (score 1))
-  (score(location Bari) (tourismType Lacustre) (score 1))
   (score(location Bari) (tourismType Naturalistico) (score 1))
-  (score(location Bari) (tourismType Termale) (score 1))
-  (score(location Bari) (tourismType Culturale) (score 1))
-  (score(location Bari) (tourismType Religioso) (score 1))
-  (score(location Bari) (tourismType Sportivo) (score 1))
+  (score(location Bari) (tourismType Culturale) (score 2))
+  (score(location Bari) (tourismType Sportivo) (score 2))
   (score(location Bari) (tourismType Enogastronomico) (score 4))
   (score(location Polignano) (tourismType Balneare) (score 5))
-  (score(location Polignano) (tourismType Montano) (score 1))
-  (score(location Polignano) (tourismType Lacustre) (score 1))
-  (score(location Polignano) (tourismType Naturalistico) (score 1))
-  (score(location Polignano) (tourismType Termale) (score 1))
-  (score(location Polignano) (tourismType Culturale) (score 1))
-  (score(location Polignano) (tourismType Religioso) (score 1))
-  (score(location Polignano) (tourismType Sportivo) (score 1))
   (score(location Polignano) (tourismType Enogastronomico) (score 3))
-  (score(location Alberobello) (tourismType Balneare) (score 1))
-  (score(location Alberobello) (tourismType Montano) (score 1))
-  (score(location Alberobello) (tourismType Lacustre) (score 1))
-  (score(location Alberobello) (tourismType Naturalistico) (score 1))
-  (score(location Alberobello) (tourismType Termale) (score 1))
+  (score(location Alberobello) (tourismType Naturalistico) (score 3))
   (score(location Alberobello) (tourismType Culturale) (score 3))
-  (score(location Alberobello) (tourismType Religioso) (score 1))
-  (score(location Alberobello) (tourismType Sportivo) (score 1))
   (score(location Alberobello) (tourismType Enogastronomico) (score 2))
-  (score(location Caserta) (tourismType Balneare) (score 1))
-  (score(location Caserta) (tourismType Montano) (score 1))
-  (score(location Caserta) (tourismType Lacustre) (score 1))
-  (score(location Caserta) (tourismType Naturalistico) (score 1))
-  (score(location Caserta) (tourismType Termale) (score 1))
+  (score(location Caserta) (tourismType Naturalistico) (score 2))
   (score(location Caserta) (tourismType Culturale) (score 5))
-  (score(location Caserta) (tourismType Religioso) (score 1))
-  (score(location Caserta) (tourismType Sportivo) (score 1))
   (score(location Caserta) (tourismType Enogastronomico) (score 1))
-  (score(location Napoli) (tourismType Balneare) (score 1))
-  (score(location Napoli) (tourismType Montano) (score 1))
-  (score(location Napoli) (tourismType Lacustre) (score 1))
   (score(location Napoli) (tourismType Naturalistico) (score 1))
-  (score(location Napoli) (tourismType Termale) (score 1))
   (score(location Napoli) (tourismType Culturale) (score 4))
-  (score(location Napoli) (tourismType Religioso) (score 1))
+  (score(location Napoli) (tourismType Religioso) (score 2))
   (score(location Napoli) (tourismType Sportivo) (score 4))
   (score(location Napoli) (tourismType Enogastronomico) (score 4))
+)
+
+(deftemplate bestOptions
+  (multislot options)
 )
 
 (defrule simmetricalDistance (declare(salience 1000))
@@ -265,8 +236,8 @@
 
 (defrule start (declare(salience 100))
   =>
-  (assert (request) (print-sorted))
-  (focus QUESTIONS REQUEST CHOOSE)
+  (assert (request) (print-sorted) (bestOptions))
+  (focus QUESTIONS REQUEST CHOOSE PRINT)
 )
 
 (defmodule QUESTIONS (import MAIN ?ALL) (export ?ALL))
@@ -283,26 +254,41 @@
 )
 
 (deffacts question-attributes
-  (question (attribute numPeople)
-            (the-question "quante persone siete? inserire numero "))
-  (question (attribute nights)
-            (the-question "durata della vacanza? inserire numero "))
+  (question (attribute name)
+            (the-question "Nome del prenotante?"))
   (question (attribute minLocations)
-            (the-question "numero minimo di località da visitare? inserire numero "))
+            (the-question "E numero minimo? inserire numero "))
   (question (attribute maxLocations)
-            (the-question "numero massimo di località da visitare? inserire numero "))
+            (the-question "C'è un numero massimo di località da visitare? inserire numero "))
   (question (attribute stars)
-            (the-question "quante stelle deve avere l'albergo dove pernotterete? inserire numero "))
+            (the-question "Qualità dell'albergo? inserire numero minimo di stelle"))
   (question (attribute price)
-            (the-question "quanto vuole spendere? inserire valore "))
-  (question (attribute regions)
-            (the-question "preferenze su regioni da visitare? inserire nome delle regioni "))
+            (the-question "Budget?"))
   (question (attribute notregions)
-            (the-question "ci sono delle regioni che non vuole visitare? inserire nome delle regioni "))
-  (question (attribute tourismTypes)
-            (the-question "località da visitare? inserire tipo delle località "))
+            (the-question "Mentre regioni che non vuoi visitare? inserire nome delle regioni "))
+  (question (attribute regions)
+            (the-question "Preferenze sulle regioni da visitare? inserire nome delle regioni "))
   (question (attribute nottourismTypes)
-            (the-question "ci sono delle località che non vuole visitare? inserire tipo delle località "))
+            (the-question "Ci sono invece tipi di località che preferiresti evitare?"))
+  (question (attribute tourismTypes)
+            (the-question "Che tipo di località vuoi visitare? "))
+  (question (attribute date)
+            (the-question "In che data vorresti partire? (d m y)"))
+  (question (attribute nights)
+            (the-question "Durata della vacanza? inserire numero dei giorni"))
+  (question (attribute numPeople)
+            (the-question "Quante persone siete? inserire numero "))
+)
+
+(defrule ask-a-question
+   ?f <- (question (already-asked FALSE)
+                   (the-question ?the-question)
+                   (attribute ?the-attribute))
+
+   =>
+   (modify ?f (already-asked TRUE))
+   (assert (attribute (name ?the-attribute)
+                      (value (explode$ (ask-question ?the-question)))))
 )
 
 (defrule ask-a-question
@@ -319,14 +305,68 @@
   ;prende la richiesta dell'utente e ne scompone le parti e riempie i valori di request
 (defmodule REQUEST (import QUESTIONS ?ALL)(export ?ALL))
 
-(defrule compile
-  (attribute(name ?n)(value $?v))
-  (test(or(neq ?v no)(neq ?v \n)))
-  ?r <- (request)
+(defrule initRequest (declare(salience 10))
+  ?user <- (user (name ?name)(numPeople ?numPeople)(regions $?regions)(notregions $?banned)(tourismTypes $?tourismTypes)(stars ?numStars)(price ?price)(maxLocations ?max)
+                  (minLocations ?min)(nights ?nights))
+  ?r <- (request(name ?name))
+  (attribute (name ?n) (value ?v&:(or(eq ?v no)(eq ?v \n))))
 
   =>
-
   (switch ?n
+    (case numPeople then (modify ?r (numPeople ?numPeople)))
+    (case regions then (modify ?r (regions ?regions)))
+    (case notregions then (modify ?r (notregions $?banned)))
+    (case tourismTypes then (modify ?r (tourismTypes $?tourismTypes)))
+    (case stars then (modify ?r (stars ?numStars)))
+    (case minLocations then (modify ?r (minLocations ?min)))
+    (case maxLocations then (modify ?r (maxLocations ?max)))
+    (case nights then (modify ?r (nights ?nights)))
+    (case price then (modify ?r (price ?price)))
+  )
+)
+
+(deffunction convertDate ($?date)
+  (bind ?daysForMonth (create$ 31 28 31 30 31 30 31 31 30 31 30 31))
+  (bind ?days 0)
+  (loop-for-count (?i 1 (- (nth$ 2 $?date) 1)) do
+    (bind ?days (+ ?days (nth$ ?i ?daysForMonth)))
+
+  (bind ?days (*(+ ?days (nth$ 1 $?date)) (-(nth$ 3 $?date) 2019 -1))))
+  ?days)
+
+(deffunction calculateAwayDate (?nights $?date)
+  (bind ?awayDate (create$ 01 01 2019))
+  (bind ?day (integer (nth$ 1 $?date)))
+  (bind ?month (integer (nth$ 2 $?date)))
+  (bind ?year (integer (nth$ 3 $?date)))
+
+  (if(>(+ ?day ?nights) 28)
+    then
+      (if(or(= ?month 04)(= ?month 06)(= ?month 09) (= ?month 11))
+        then
+          (bind ?awayDate 1 3 (-(+ ?day ?nights) 30) (+ ?month 1) ?year)
+        else
+          (bind ?awayDate (-(+ ?day ?nights) 31) (+ ?month 1) ?year)
+      )
+      (if(= ?month 02)
+        then
+          (bind ?awayDate (-(+ ?day ?nights) 28) 03 ?year)
+      )
+      (if(= ?month 12)
+        then
+          (bind ?awayDate (-(+ ?day ?nights) 31) 01 (+ ?year 1))
+      )
+    else
+      (bind ?awayDate (+ ?day ?nights) ?month ?year)
+  )
+  ?awayDate)
+
+(defrule compile
+  (attribute(name ?n)(value $?v))
+  ?r <- (request(nights ?nights))
+  =>
+  (switch ?n
+    (case name then (modify ?r (name (implode$ ?v))))
     (case numPeople then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (numPeople (nth$ 1 ?v)))))
     (case regions then (modify ?r (regions ?v)))
     (case notregions then (modify ?r (notregions ?v)))
@@ -335,42 +375,65 @@
     (case stars then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (stars (nth$ 1 ?v)))))
     (case minLocations then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (minLocations (nth$ 1 ?v)))))
     (case maxLocations then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (maxLocations (nth$ 1 ?v)))))
+    (case date then (modify ?r (arrivalDate ?v) (awayDate (calculateAwayDate ?nights ?v))))
     (case nights then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (nights (nth$ 1 ?v)))))
     (case price then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (price (nth$ 1 ?v)))))
   )
-
 )
 
   ;dalle richieste si scelgono delle possiblili opzioni
 (defmodule CHOOSE (import MAIN ?ALL )(export ?ALL))
 
+(deffunction verifyDate(?dateArr ?dateAw ?date)
+  (bind ?arrive convertDate ?dateArr)
+  (bind ?away convertDate ?dateAw)
+  (bind ?d convertDate ?date)
+
+  (return(and(> ?date ?arrive)(< ?date ?away)))
+)
+
+
+(deffunction verifyRooms(?date ?away ?numPeople ?name ?numRooms)
+    (bind ?sum 0)
+    (do-for-all-facts((?book reservation))
+      (and(eq ?book:hotel ?name) (not(verifyDate ?book:arrivalDate ?book:awayDate ?date)) (not(verifyDate ?book:arrivalDate ?book:awayDate ?away)))
+      (bind ?sum (+ ?sum ?book:numPeople))
+    )
+    (return (>= (- ?numRooms ?sum) (div (+ ?numPeople 1) 2)))
+)
+
 (defrule defineHotel (declare (salience 100))
-  (request(name ?name)(numPeople ?numPeople)(regions $?regions)(notregions $?banned)(stars ?minStars)(price ?price))
-  (hotel(name ?nameHotel) (numRooms ?numRooms&:(>= ?numRooms (div (+ ?numPeople 1) 2))) (stars ?numStars&:(>= ?numStars ?minStars)) (location ?loc))
+  (request(name ?name)(numPeople ?numPeople)(regions $?regions)(notregions $?banned)(stars ?stars)(arrivalDate $?date)(awayDate $?away)(price ?priceReq))
+  ?hotel <- (hotel(name ?nameHotel) (numRooms ?numRooms) (stars ?numStars&:(>= ?numStars ?stars)) (location ?loc))
   (location (name ?loc) (region ?region))
 
-  (test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
-  (test(or(not(member$ ?region $?regions)) (=(length$ $?banned) 0)))
-  (test(or (= ?price 0) (<= (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?price)))
+  ;(test(verifyRooms ?date ?away ?numPeople ?nameHotel ?numRooms))
+  ;(test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
+  ;(test(or(not(member$ ?region $?banned)) (=(length$ $?banned) 0)))
+  ;(test(or (= ?priceReq 0) (<= (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq)))
 
 =>
-  (assert(option(name ?name) (hotel ?nameHotel) (locations ?loc) (nights 1)(price (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
+  (assert(option(name ?name) (hotel ?nameHotel) (locations ?loc)(arrivalDate $?date) (awayDate $?away) (nights 1)(price (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
 )
 
 (defrule defineLocations (declare (salience 90))
   (option(name ?name) (hotel ?hotel)(nights ?nights) (locations $?locations))
-  (request(name ?name)(numPeople ?numPeople)(regions $?regions)(nights ?nightsReq) (maxLocations ?num)(tourismTypes $?tourismTypes) (price ?priceReq))
+  (request(name ?name)(numPeople ?numPeople)(regions $?regions)(notregions $?banned)(nights ?nightsReq)(arrivalDate $?date) (awayDate $?away) (maxLocations ?num)
+          (tourismTypes $?tourismTypes)(price ?priceReq))
   (hotel(name ?hotel)(location ?location)(stars ?numStars))
   (location (name ?loc&:(neq ?loc ?location)) (region ?region)(tourismTypes $? ?ttype $?))
   (distance(from ?loc)(to ?location)(distance ?d))
+
   (test(or (= ?priceReq 0) (<= (* (+ ?nights 1) 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq)))
   (test(or(member$ ?region $?regions)(=(length$ $?regions) 0) (<= ?d 100)))
+  (test(or(not(member$ ?region $?banned)) (=(length$ $?banned) 0)))
   (test(or(member$ ?ttype $?tourismTypes)(=(length$ $?tourismTypes) 0)))
   (test(< (length$ $?locations) ?num))
   (test(not(member$ ?loc $?locations)))
   =>
 
-  (assert(option(name ?name)(hotel ?hotel)(nights (+ ?nights 1)) (locations $?locations ?loc) (price (* (+ ?nights 1) 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
+  (assert(option(name ?name)(hotel ?hotel)(nights (+ ?nights 1)) (locations $?locations ?loc)(arrivalDate $?date) (awayDate $?away)
+                (price (* (+ ?nights 1) 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
 )
 
 (defrule deleteDuplicates (declare (salience 80))
@@ -416,7 +479,6 @@
 ;)
 
 (defrule CF_Price (declare(salience 50))
-
   (request(name ?name)(numPeople ?numPeople)(price ?priceReq))
   ?opt <- (option (name ?name)(price ?price)(nights ?nights))
 
@@ -433,9 +495,8 @@
 
 (defrule CF_Used (declare(salience 40))
   ?opt <- (option(name ?name)(hotel ?hotel))
-  (solution(name ~?name) (hotel ?hotel))
+  (reservation(name ~?name) (hotel ?hotel))
 =>
-
   (assert(oav(option ?opt) (attribute yetUsed) (value yes)(certain 0.4)))
 )
 
@@ -488,7 +549,6 @@
   (bind ?CT (* ?CP ?CD ?CS))
 ;  (printout t "option " ?opt "  score " ?CS "  price " ?CP "  distances " ?CD "  totale " ?CT crlf)
   (modify ?oavS (attribute all)(certain (abs ?CT)))
-  (focus PRINT)
 )
 
 ;si stampano i risultati
@@ -501,34 +561,71 @@
 )
 
 (defrule retract-print-sorted "Retract print-sorted after all items enumerated."
-  (declare (salience -10))
+  (declare (salience 5))
   ?f <- (print-sorted)
   =>
-  ;(retract ?f)
+  (retract ?f)
 )
 
-(defglobal ?*count* = 0)
+(defglobal ?*count* = 1)
 
 (defrule print-sorted (declare(salience 10))
-
+  (print-sorted)
   ?opt <- (option (hotel ?hotel) (locations $?locations) (price ?price))
   ?u <- (unprinted ?opt)
-  (oav(option ?opt) (attribute all) (certain ?certain))
+  ?best <- (bestOptions (options $?opts))
+  ?oav <- (oav(option ?opt) (attribute all) (certain ?certain))
 
-  (forall(and (unprinted ?opt1) (oav (option ?opt1) (attribute all)(certain ?c)))
+  (forall (unprinted ?opt1) (oav (option ?opt1) (attribute all)(certain ?c))
       (test(>= ?certain ?c)))
   =>
-  (retract ?u)
-;  (if(< ?*count* 5)
-;    then
-      (printout t "hotel " ?hotel " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
-;  )
-  (bind ?*count* (+ ?*count* 1))
 
+  (retract ?u)
+  (if(<= ?*count* 5)
+    then
+      (modify ?best (options $?opts ?opt))
+      (printout t ?*count* ":=>  hotel " ?hotel " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
+      (retract ?oav)
+    else
+      (retract ?oav)
+      (retract ?opt)
+  )
+  (bind ?*count* (+ ?*count* 1))
 )
 
-;input
-;aggiornamento request
+(defrule chooseOption (declare(salience -5))
+  (not(print-sorted))
+  (bestOptions (options $?options))
+  =>
+
+  (printout t "Quale soluzione scegli? inserisci il numero dell'indice, altrimenti 0 per modificare la richiesta" crlf)
+  (bind ?in (read))
+
+  (if (> ?in 0)
+      then
+        (printout t (fact-index(nth$ ?in $?options)) crlf)
+        (assert(selected(fact-index(nth$ ?in $?options))))
+  )
+)
+
+(defrule createReservation (declare(salience -10))
+  (selected ?num)
+
+  ?opt <- (option(name ?name)(hotel ?hotel) (nights ?nights) (locations $?locations) (price ?price) (arrivalDate $?date) (awayDate $?away))
+  (test(=(fact-index ?opt) ?num))
+
+  =>
+  (assert(reservation(name ?name)(hotel ?hotel)) (nights ?nights) (locations $?locations) (price ?price) (arrivalDate $?date) (awayDate $?away))
+  (printout t "Prenotazione effettuata!" crlf)
+)
+
+;scelta della soluzione
+;constraint factor sul già usato (integrato con gli altri)
+;modificare richiesta
+;cf su regionalità
+;preferenze utente
+
 ;certan factor con valore sullo score
 ;aggiornare fatti dopo la richiesta
-;consigliare posti vicini alla regione
+
+;controlli sull'input

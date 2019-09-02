@@ -74,16 +74,16 @@
 )
 
 (deftemplate user
-  (slot name (default Person))
+  (slot name)
   (slot numPeople (type INTEGER))
   (multislot regions)
   (multislot notregions)
   (multislot tourismTypes)
   (multislot nottourismTypes)
-  (slot stars (type INTEGER))
+  (slot stars (type INTEGER) (range 1 4))
   (slot minLocations (type INTEGER))
   (slot maxLocations (type INTEGER))
-  (slot nights (type INTEGER))
+  (slot nights (type INTEGER) (default 1))
   (slot price (type INTEGER))
 )
 
@@ -230,9 +230,10 @@
 )
 
 (deffunction ask-question (?question)
-   (printout t ?question crlf)
-   (bind $?answer (readline))
-   $?answer)
+
+ 	(printout t ?question crlf)
+   	(bind $?answer (readline))
+   		$?answer)
 
 (defrule start (declare(salience 100))
   =>
@@ -280,26 +281,46 @@
             (the-question "Quante persone siete? inserire numero "))
 )
 
-(defrule ask-a-question
-   ?f <- (question (already-asked FALSE)
-                   (the-question ?the-question)
-                   (attribute ?the-attribute))
 
-   =>
-   (modify ?f (already-asked TRUE))
-   (assert (attribute (name ?the-attribute)
-                      (value (explode$ (ask-question ?the-question)))))
+(defrule resetOptions (declare(salience 100))
+?opt <- (option)
+(reset)
+=>
+(retract ?opt)
 )
 
-(defrule ask-a-question
-   ?f <- (question (already-asked FALSE)
-                   (the-question ?the-question)
-                   (attribute ?the-attribute))
+(defrule resetOav (declare(salience 100))
+  ?oav <- (oav)
+  (reset)
+=>
+  (retract ?oav)
+)
 
-   =>
-   (modify ?f (already-asked TRUE))
-   (assert (attribute (name ?the-attribute)
-                      (value (explode$ (ask-question ?the-question)))))
+(defrule resetVisited (declare(salience 100))
+  ?reg <- (region)
+  (reset)
+=>
+  (modify ?reg (visited (create$ )))
+)
+
+(defrule deleteReset (declare(salience 95))
+  ?reset <- (reset)
+  (not(option))
+  (not(oav))
+
+  =>
+  (retract ?reset)
+)
+
+(defrule ask-a-question	(declare (auto-focus TRUE))
+   	?f <- (question (already-asked FALSE)
+                   	(the-question ?the-question)
+                   	(attribute ?the-attribute))
+
+   	=>
+   	(modify ?f (already-asked TRUE))
+   	(assert (attribute (name ?the-attribute)
+                      	(value (explode$ (ask-question ?the-question)))))
 )
 
   ;prende la richiesta dell'utente e ne scompone le parti e riempie i valori di request
@@ -361,10 +382,11 @@
   )
   ?awayDate)
 
-(defrule compile
-  (attribute(name ?n)(value $?v))
+(defrule compile (declare(auto-focus TRUE))
+  ?attr <- (attribute(name ?n)(value $?v))
   ?r <- (request(nights ?nights))
   =>
+  (retract ?attr)
   (switch ?n
     (case name then (modify ?r (name (implode$ ?v))))
     (case numPeople then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (numPeople (nth$ 1 ?v)))))
@@ -375,9 +397,15 @@
     (case stars then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (stars (nth$ 1 ?v)))))
     (case minLocations then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (minLocations (nth$ 1 ?v)))))
     (case maxLocations then (if (eq (type (nth$ 1 ?v)) INTEGER ) then (modify ?r (maxLocations (nth$ 1 ?v)))))
-    (case date then (modify ?r (arrivalDate ?v) (awayDate (calculateAwayDate ?nights ?v))))
     (case nights then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (nights (nth$ 1 ?v)))))
     (case price then (if (eq (type (nth$ 1 ?v)) INTEGER) then (modify ?r (price (nth$ 1 ?v)))))
+    (case date then
+          (if (=(length$ ?v) 0) then
+              (bind ?day (+ (mod (random) 28) 1))
+              (bind ?month (+ (mod (random) 12) 1))
+              (modify ?r (arrivalDate (create$ ?day ?month 2020)) (awayDate (calculateAwayDate ?nights (create$ ?day ?month 2020))))
+            else
+             (modify ?r (arrivalDate ?v) (awayDate (calculateAwayDate ?nights ?v)))))
   )
 )
 
@@ -391,7 +419,6 @@
 
   (return(and(> ?date ?arrive)(< ?date ?away)))
 )
-
 
 (deffunction verifyRooms(?date ?away ?numPeople ?name ?numRooms)
     (bind ?sum 0)
@@ -407,10 +434,10 @@
   ?hotel <- (hotel(name ?nameHotel) (numRooms ?numRooms) (stars ?numStars&:(>= ?numStars ?stars)) (location ?loc))
   (location (name ?loc) (region ?region))
 
-  ;(test(verifyRooms ?date ?away ?numPeople ?nameHotel ?numRooms))
-  ;(test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
-  ;(test(or(not(member$ ?region $?banned)) (=(length$ $?banned) 0)))
-  ;(test(or (= ?priceReq 0) (<= (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq)))
+  (test(verifyRooms ?date ?away ?numPeople ?nameHotel ?numRooms))
+  (test(or(member$ ?region $?regions)(=(length$ $?regions) 0)))
+  (test(or(not(member$ ?region $?banned)) (=(length$ $?banned) 0)))
+  (test(or (= ?priceReq 0) (<= (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq)))
 
 =>
   (assert(option(name ?name) (hotel ?nameHotel) (locations ?loc)(arrivalDate $?date) (awayDate $?away) (nights 1)(price (* 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
@@ -424,16 +451,19 @@
   (location (name ?loc&:(neq ?loc ?location)) (region ?region)(tourismTypes $? ?ttype $?))
   (distance(from ?loc)(to ?location)(distance ?d))
 
-  (test(or (= ?priceReq 0) (<= (* (+ ?nights 1) 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq)))
   (test(or(member$ ?region $?regions)(=(length$ $?regions) 0) (<= ?d 100)))
   (test(or(not(member$ ?region $?banned)) (=(length$ $?banned) 0)))
   (test(or(member$ ?ttype $?tourismTypes)(=(length$ $?tourismTypes) 0)))
   (test(< (length$ $?locations) ?num))
   (test(not(member$ ?loc $?locations)))
   =>
+  (bind ?n (+ ?nights (+ (mod (random) 2) 1)))
 
-  (assert(option(name ?name)(hotel ?hotel)(nights (+ ?nights 1)) (locations $?locations ?loc)(arrivalDate $?date) (awayDate $?away)
-                (price (* (+ ?nights 1) 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
+  (if(or (= ?priceReq 0) (<= (* ?n 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq))
+    then
+      (assert(option(name ?name)(hotel ?hotel)(nights ?n) (locations $?locations ?loc)(arrivalDate $?date) (awayDate $?away)
+                    (price (* ?n 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
+  )
 )
 
 (defrule deleteDuplicates (declare (salience 80))
@@ -472,12 +502,6 @@
   (retract ?opt)
 )
 
-;(defrule resetVisited (declare(salience -5))
-;  ?reg <- (region)
-;  =>
-;  (modify ?reg (visited (create$ )))
-;)
-
 (defrule CF_Price (declare(salience 50))
   (request(name ?name)(numPeople ?numPeople)(price ?priceReq))
   ?opt <- (option (name ?name)(price ?price)(nights ?nights))
@@ -488,7 +512,7 @@
       (bind ?c (mod(*(- ?price ?priceReq -1) 0.01) 1))
       (assert(oav(option ?opt) (attribute price) (value ?price)(certain (abs ?c))))
     else
-      (bind ?c (/ (/ 100 ?price) (* ?nights (div (+ ?numPeople 1) 2))))
+      (bind ?c (/ 100 (/ ?price (* ?nights (div (+ ?numPeople 1) 2)))))
       (assert(oav(option ?opt) (attribute price) (value ?price) (certain (abs ?c))))
   )
 )
@@ -532,7 +556,7 @@
 )
 
 (defrule deleteForDistance (declare(salience 13))
-  ?opt <- (option)
+  ?opt <- (option(nights ?nights))
   ?oavD <- (oav(option ?opt)(attribute distances)(certain ?c&:(< ?c -150)))
   ?oavP <- (oav(option ?opt)(attribute price))
   ?oavS <- (oav(option ?opt)(attribute score))
@@ -540,38 +564,57 @@
   (retract ?opt ?oavS ?oavP ?oavD)
 )
 
+(defrule CF_regions (declare(salience 11))
+	(request(name ?name) (regions $?reg))
+  	?opt <- (option (name ?name) (locations $?locations))
+  	?l <- (location (region ?r))
+  	(test (member$ ?l $?locations))
+  	=>
+	(if (not(member$ ?r $?reg))
+		then
+			(assert(oav(option ?opt) (attribute region) (value ?r) (certain 0.5)))
+		else
+			(assert(oav(option ?opt) (attribute region) (value ?r) (certain 1)))
+	)
+)
+
+
 (defrule combineCF (declare(salience 10))
   ?oavP <- (oav(option ?opt) (attribute price) (certain ?CP))
   ?oavD <- (oav(option ?opt) (attribute distances) (certain ?CD))
   ?oavS <- (oav(option ?opt) (attribute score) (certain ?CS))
+  ?oavR <- (oav(option ?opt) (attribute region) (certain ?CR))
   =>
   (retract ?oavP ?oavD)
-  (bind ?CT (* ?CP ?CD ?CS))
-;  (printout t "option " ?opt "  score " ?CS "  price " ?CP "  distances " ?CD "  totale " ?CT crlf)
+  (bind ?CT (* ?CP ?CD ?CS ?CR))
+  (printout t "option " ?opt "  score " ?CS "  price " ?CP "  distances " ?CD "  totale " ?CT crlf)
   (modify ?oavS (attribute all)(certain (abs ?CT)))
 )
 
 ;si stampano i risultati
-(defmodule PRINT (import MAIN ?ALL))
+(defmodule PRINT (import MAIN ?ALL) (import QUESTIONS ?ALL))
 
 (defrule assert-unprinted "Asserts each item that needs to be printed." (declare(salience 20))
+  (print-sorted)
   ?opt <- (option)
   =>
   (assert (unprinted ?opt))
 )
+
+(defglobal ?*count* = 1)
 
 (defrule retract-print-sorted "Retract print-sorted after all items enumerated."
   (declare (salience 5))
   ?f <- (print-sorted)
   =>
   (retract ?f)
+  (bind ?*count* 1)
+  (assert(reset))
 )
-
-(defglobal ?*count* = 1)
 
 (defrule print-sorted (declare(salience 10))
   (print-sorted)
-  ?opt <- (option (hotel ?hotel) (locations $?locations) (price ?price))
+  ?opt <- (option (hotel ?hotel) (nights ?nights) (locations $?locations) (price ?price))
   ?u <- (unprinted ?opt)
   ?best <- (bestOptions (options $?opts))
   ?oav <- (oav(option ?opt) (attribute all) (certain ?certain))
@@ -584,48 +627,92 @@
   (if(<= ?*count* 5)
     then
       (modify ?best (options $?opts ?opt))
-      (printout t ?*count* ":=>  hotel " ?hotel " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
+      (printout t ?*count* ":=>  hotel " ?hotel " nights " ?nights " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
       (retract ?oav)
     else
-      (retract ?oav)
-      (retract ?opt)
+      (retract ?oav ?opt)
   )
   (bind ?*count* (+ ?*count* 1))
 )
 
+(deftemplate selectedId
+	(slot index (type INTEGER))
+	(slot attribute))
+
 (defrule chooseOption (declare(salience -5))
-  (not(print-sorted))
-  (bestOptions (options $?options))
-  =>
+	(not(print-sorted))
+	(bestOptions (options $?options))
 
-  (printout t "Quale soluzione scegli? inserisci il numero dell'indice, altrimenti 0 per modificare la richiesta" crlf)
-  (bind ?in (read))
+	(not(selected))
+	=>
 
-  (if (> ?in 0)
-      then
-        (printout t (fact-index(nth$ ?in $?options)) crlf)
-        (assert(selected(fact-index(nth$ ?in $?options))))
-  )
+	(printout t "Quale soluzione scegli? inserisci il numero dell'indice, altrimenti 0 per modificare la richiesta" crlf)
+	(bind ?in (read))
+
+	(if (and(> ?in 0)(<= ?in 5))
+		then
+	    (assert(selected(fact-index(nth$ ?in $?options)))))
+
+	(if (eq ?in 0)
+		then
+			(printout t "cosa vuoi cambiare? inserisci il numero corrispondente"crlf
+			 "1 nome" crlf
+			 "2 numero di persone" crlf
+			 "3 regioni preferite" crlf
+			 "4 regioni da evitare" crlf
+			 "5 tipi di turismo preferiti" crlf
+			 "6 tipi di turismo da evitare" crlf
+			 "7 numero di stelle dell'albergo" crlf
+			 "8 numero minimo di posti da visitare" crlf
+			 "9 numero massimo di posti da visitare" crlf
+			 "10 numero di notti" crlf
+			 "11 prezzo" crlf)
+
+			(bind ?input (read))
+
+			(switch ?input
+				(case 1 then (assert (selectedId (index ?input) (attribute name))))
+				(case 2 then (assert (selectedId (index ?input) (attribute numPeople))))
+				(case 3 then (assert (selectedId (index ?input) (attribute regions))))
+				(case 4 then (assert (selectedId (index ?input) (attribute notregions))))
+				(case 5 then (assert (selectedId (index ?input) (attribute tourismTypesame))))
+				(case 6 then (assert (selectedId (index ?input) (attribute nottourismTypes))))
+				(case 7 then (assert (selectedId (index ?input) (attribute stars))))
+				(case 8 then (assert (selectedId (index ?input) (attribute minLocations))))
+				(case 9 then (assert (selectedId (index ?input) (attribute maxLocations))))
+				(case 10 then (assert (selectedId (index ?input) (attribute nights))))
+				(case 11 then (assert (selectedId (index ?input) (attribute price))))
+			)
+	)
+)
+
+(defrule checkSelected
+
+	?sel <- (selectedId (attribute ?at))
+	?quest <- (question (attribute ?at))
+  ?best <- (bestOptions)
+	=>
+  (modify ?best (options (create$ )))
+	(modify ?quest (already-asked FALSE))
+	(retract ?sel)
+  (assert(print-sorted) (reset))
+  (focus QUESTIONS REQUEST CHOOSE PRINT)
 )
 
 (defrule createReservation (declare(salience -10))
-  (selected ?num)
-
+  ?sel <- (selected ?num)
+  ?req <- (request(name ?name) (numPeople ?numPeople)(regions $?regions)(notregions $?banned)(tourismTypes $?tourismTypes))
   ?opt <- (option(name ?name)(hotel ?hotel) (nights ?nights) (locations $?locations) (price ?price) (arrivalDate $?date) (awayDate $?away))
   (test(=(fact-index ?opt) ?num))
 
   =>
-  (assert(reservation(name ?name)(hotel ?hotel)) (nights ?nights) (locations $?locations) (price ?price) (arrivalDate $?date) (awayDate $?away))
+  (retract ?sel)
+  (assert(user(name ?name)(numPeople ?numPeople) (nights ?nights) (regions $?regions)(notregions $?banned)(tourismTypes $?tourismTypes)(price ?price))
+         (reservation(name ?name)(hotel ?hotel) (nights ?nights) (locations $?locations) (price ?price) (arrivalDate $?date) (awayDate $?away)))
   (printout t "Prenotazione effettuata!" crlf)
 )
 
+
 ;scelta della soluzione
-;constraint factor sul già usato (integrato con gli altri)
 ;modificare richiesta
 ;cf su regionalità
-;preferenze utente
-
-;certan factor con valore sullo score
-;aggiornare fatti dopo la richiesta
-
-;controlli sull'input

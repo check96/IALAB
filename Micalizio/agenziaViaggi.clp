@@ -237,7 +237,8 @@
 
 (defrule start (declare(salience 100))
   =>
-  (assert (request) (print-sorted) (bestOptions))
+
+  (assert (request) (print-sorted) (bestOptions)(reset))
   (focus QUESTIONS REQUEST CHOOSE PRINT)
 )
 
@@ -251,7 +252,7 @@
 (deftemplate question
    (slot attribute (default ?NONE))
    (slot the-question (default ?NONE))
-   (slot already-asked (default FALSE))
+   (slot already-asked (default TRUE))
 )
 
 (deffacts question-attributes
@@ -281,26 +282,32 @@
             (the-question "Quante persone siete? inserire numero "))
 )
 
-
 (defrule resetOptions (declare(salience 100))
-?opt <- (option)
-(reset)
+  ?opt <- (option)
+  (or(reset)(resetModify))
 =>
-(retract ?opt)
+  (retract ?opt)
 )
 
 (defrule resetOav (declare(salience 100))
   ?oav <- (oav)
-  (reset)
+  (or(reset)(resetModify))
 =>
   (retract ?oav)
 )
 
 (defrule resetVisited (declare(salience 100))
   ?reg <- (region)
-  (reset)
+  (or(reset)(resetModify))
 =>
   (modify ?reg (visited (create$ )))
+)
+
+(defrule resetQuestions (declare(salience 99))
+  ?quest <- (question(already-asked TRUE))
+  (reset)
+=>
+  (modify ?quest (already-asked FALSE))
 )
 
 (defrule deleteReset (declare(salience 95))
@@ -410,7 +417,7 @@
 )
 
   ;dalle richieste si scelgono delle possiblili opzioni
-(defmodule CHOOSE (import MAIN ?ALL )(export ?ALL))
+(defmodule CHOOSE (import MAIN ?ALL)(import QUESTIONS ?ALL)(export ?ALL))
 
 (deffunction verifyDate(?dateArr ?dateAw ?date)
   (bind ?arrive convertDate ?dateArr)
@@ -461,7 +468,7 @@
 
   (if(or (= ?priceReq 0) (<= (* ?n 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)) ?priceReq))
     then
-      (assert(option(name ?name)(hotel ?hotel)(nights ?n) (locations $?locations ?loc)(arrivalDate $?date) (awayDate $?away)
+      (assert(option(name ?name)(hotel ?hotel)(nights ?n) (locations $?locations ?loc)(arrivalDate $?date) (awayDate calculateAwayDate ?n $?date)
                     (price (* ?n 25 (+ ?numStars 1) (div (+ ?numPeople 1) 2)))))
   )
 )
@@ -521,7 +528,7 @@
   ?opt <- (option(name ?name)(hotel ?hotel))
   (reservation(name ~?name) (hotel ?hotel))
 =>
-  (assert(oav(option ?opt) (attribute yetUsed) (value yes)(certain 0.4)))
+  (assert(oav(option ?opt) (attribute yetUsed) (value yes)(certain 0.5)))
 )
 
 (defglobal ?*value* = 0)
@@ -564,20 +571,29 @@
   (retract ?opt ?oavS ?oavP ?oavD)
 )
 
-(defrule CF_regions (declare(salience 11))
-	(request(name ?name) (regions $?reg))
-  	?opt <- (option (name ?name) (locations $?locations))
-  	?l <- (location (region ?r))
-  	(test (member$ ?l $?locations))
-  	=>
-	(if (not(member$ ?r $?reg))
+(defrule CF_regions (declare(salience 12))
+  (request (regions $?reg))
+	?opt <- (option (locations $? ?location $?) )
+  (location(name ?location)(region ?region))
+=>
+  (if (not(member$ ?region $?reg))
 		then
-			(assert(oav(option ?opt) (attribute region) (value ?r) (certain 0.5)))
+			(assert(oav(option ?opt) (attribute region) (value ?region) (certain 0.85)))
 		else
-			(assert(oav(option ?opt) (attribute region) (value ?r) (certain 1)))
-	)
+			(assert(oav(option ?opt) (attribute region) (value ?region) (certain 1)))
+  )
 )
 
+(defrule combineCF_regions (declare(salience 11))
+  ?oav1 <- (oav(option ?opt)(attribute region) (certain ?v))
+  ?oav2 <- (oav(option ?opt)(attribute region) (certain ?v1))
+  (test(neq ?oav1 ?oav2))
+=>
+  (if(<> ?v ?v1) then
+    (modify ?oav1(certain 0.85)))
+
+  (retract ?oav2)
+)
 
 (defrule combineCF (declare(salience 10))
   ?oavP <- (oav(option ?opt) (attribute price) (certain ?CP))
@@ -585,9 +601,9 @@
   ?oavS <- (oav(option ?opt) (attribute score) (certain ?CS))
   ?oavR <- (oav(option ?opt) (attribute region) (certain ?CR))
   =>
-  (retract ?oavP ?oavD)
+  (retract ?oavP ?oavD ?oavR)
   (bind ?CT (* ?CP ?CD ?CS ?CR))
-  (printout t "option " ?opt "  score " ?CS "  price " ?CP "  distances " ?CD "  totale " ?CT crlf)
+  (printout t "option " ?opt "  score " ?CS "  price " ?CP "  distance " ?CD " regions " ?CR " totale " ?CT crlf)
   (modify ?oavS (attribute all)(certain (abs ?CT)))
 )
 
@@ -613,7 +629,7 @@
 )
 
 (defrule print-sorted (declare(salience 10))
-  (print-sorted)
+  ;(print-sorted)
   ?opt <- (option (hotel ?hotel) (nights ?nights) (locations $?locations) (price ?price))
   ?u <- (unprinted ?opt)
   ?best <- (bestOptions (options $?opts))
@@ -624,10 +640,11 @@
   =>
 
   (retract ?u)
+
   (if(<= ?*count* 5)
     then
       (modify ?best (options $?opts ?opt))
-      (printout t ?*count* ":=>  hotel " ?hotel " nights " ?nights " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
+      (printout t ?*count* " :=>   hotel " ?hotel " nights " ?nights " locations " $?locations "  price " ?price  "  cf " ?certain crlf)
       (retract ?oav)
     else
       (retract ?oav ?opt)
@@ -641,11 +658,12 @@
 
 (defrule chooseOption (declare(salience -5))
 	(not(print-sorted))
-	(bestOptions (options $?options))
+	?best <- (bestOptions (options $?options))
 
 	(not(selected))
 	=>
 
+  (printout t $?options crlf)
 	(printout t "Quale soluzione scegli? inserisci il numero dell'indice, altrimenti 0 per modificare la richiesta" crlf)
 	(bind ?in (read))
 
@@ -655,6 +673,7 @@
 
 	(if (eq ?in 0)
 		then
+      (modify ?best (options (create$ )))
 			(printout t "cosa vuoi cambiare? inserisci il numero corrispondente"crlf
 			 "1 nome" crlf
 			 "2 numero di persone" crlf
@@ -690,12 +709,11 @@
 
 	?sel <- (selectedId (attribute ?at))
 	?quest <- (question (attribute ?at))
-  ?best <- (bestOptions)
+
 	=>
-  (modify ?best (options (create$ )))
 	(modify ?quest (already-asked FALSE))
 	(retract ?sel)
-  (assert(print-sorted) (reset))
+  (assert(print-sorted) (resetModify))
   (focus QUESTIONS REQUEST CHOOSE PRINT)
 )
 

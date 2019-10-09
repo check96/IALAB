@@ -1,12 +1,8 @@
 % nodo(posizione,valore,azioni)
 
 search(Soluzione) :-
-  statistics(walltime, [_ | [_]]),
   iniziale(S),
-  aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione),
-  statistics(walltime, [_ | [ExecutionTime]]),
-  write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
-
+  aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione).
 
 % aStar(open(nodo(posizione,valore,azioni)), nodeMin, closed, soluzione)
 aStar(_,nodo(S,_,Azioni),_,Azioni) :- finale(S), !.                                          % restituisco la soluzione (le azioni), se il prossimo nodo da espandere è un nodo finale S
@@ -22,7 +18,6 @@ aStar(Open,nodo(NodeMin,ValueMin,Actions), Close,Soluzione):-
 % generaFigli(Nodo(nodo,valore,azioni),ListaApplicabili,ListaFigli,Open,Close).
 generaFigli(_,[],[],_,_).
 
-%NB: VA AGGIUNTO checkClose CHE RIAPRE UN NODO QUALORA QUESTO VENGA GENERATO DI NUOVO MA CON UN VALORE MINORE... IN ALTERNATIVA SI PUO' PENSARE DI FARE QUESTO CONTROLLO INSIEME A checkOpen
 generaFigli(nodo(S,Value,AzioniPerS),[Azione|AltreAzioni],[nodo(SNuovo,NewValue,[Azione|AzioniPerS])|FigliTail],Open,Close):-
     trasforma(Azione,S,SNuovo,Costo),                                             % eseguo Azione e creo un nodo in una nuova posizione SNuovo
     NewValue is Costo + Value,                                                    % calcolo il valore dell'euristica del nuovo nodo

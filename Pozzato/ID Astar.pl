@@ -1,19 +1,16 @@
-search(Soluzione) :- statistics(walltime, [_ | [_]]),
-   iniziale(S), iterativeDeepening(nodo(S,0),Soluzione,0),
-   statistics(walltime, [_ | [ExecutionTime]]),
-   write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
-
-valuta(nodo(S,G),F) :- distanza(S,H), F is G + H.
+search(Soluzione) :-
+   iniziale(S), assert(overbound(3423452352)), iterativeDeepening(nodo(S,0),Soluzione,0).
 
 iterativeDeepening(nodo(S,G),Soluzione,Soglia) :-
+    write('soglia '), write(Soglia), nl,
     dfsLimitata(nodo(S,G),Soluzione,[S],Soglia), !.
 
 iterativeDeepening(S,Soluzione,_):-
     retract(overbound(X)),
-    min_list(X,NuovaSoglia),
-    iterativeDeepening(S,Soluzione,NuovaSoglia).
+    assert(overbound(3423452352)),
+    iterativeDeepening(S,Soluzione,X).
 
-dfsLimitata(nodo(S,_),[],_,_) :- finale(S).
+dfsLimitata(nodo(S,_),[],_,_) :- finale(S),!.
 dfsLimitata(nodo(S,G),[Azione|AzioniTail],Visitati,Soglia):-
     valuta(nodo(S,G),F),
     \+ check(F,Soglia), !,
@@ -23,11 +20,12 @@ dfsLimitata(nodo(S,G),[Azione|AzioniTail],Visitati,Soglia):-
     GValue is G + Costo,
     dfsLimitata(nodo(SNuovo,GValue),AzioniTail,[SNuovo|Visitati],Soglia).
 
-check(F,Soglia):-
-    F > Soglia,
-    retract(overbound(X)),!,
-    assert(overbound([F|X])).
+valuta(nodo(S,G),F) :- distanza(S,H), F is G + H.
 
 check(F,Soglia):-
     F > Soglia,
-    assert(overbound([F])).
+    overbound(X),
+    %write(F),write('   '),write(X),nl,
+    F < X,!,
+    retract(overbound(X)),
+    assert(overbound(F)).

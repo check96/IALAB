@@ -1,8 +1,5 @@
 search(Soluzione) :-
-  statistics(walltime, [_ | [_]]),
-  iniziale(S), iterativeDeepening(S,Soluzione,1),
-  statistics(walltime, [_ | [ExecutionTime]]),
-  write('Execution took '), write(ExecutionTime), write(' ms.'), nl.
+  iniziale(S), iterativeDeepening(S,Soluzione,1).
 
 iterativeDeepening(S,[],_) :- finale(S).
 iterativeDeepening(S,Soluzione,Soglia) :-

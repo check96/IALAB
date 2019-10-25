@@ -1,5 +1,5 @@
 search(Soluzione) :-
-  iniziale(S), iterativeDeepening(S,Soluzione,1).
+  iniziale(S), iterativeDeepening(S,Soluzione,1),length(Soluzione,L),write(L),nl.
 
 iterativeDeepening(S,[],_) :- finale(S).
 iterativeDeepening(S,Soluzione,Soglia) :-
@@ -7,6 +7,7 @@ iterativeDeepening(S,Soluzione,Soglia) :-
 
 iterativeDeepening(S,Soluzione,Soglia):-
     NuovaSoglia is Soglia+1,
+    write(NuovaSoglia),nl,
     numRighe(R), numColonne(C), NuovaSoglia =< R*C,   % limite imposto per evitare che vada in un loop infinito quando non esistono soluzioni
     iterativeDeepening(S,Soluzione,NuovaSoglia).
 

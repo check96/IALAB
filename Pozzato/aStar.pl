@@ -2,7 +2,7 @@
 
 search(Soluzione) :-
   iniziale(S),
-  aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione).
+  aStar([nodo(S,0,[])],nodo(S,0,[]),[],Sol), reverse(Sol,Soluzione),length(Soluzione,L),write(L),nl.
 
 % aStar(open(nodo(posizione,valore,azioni)), nodeMin, closed, soluzione)
 aStar(_,nodo(S,_,Azioni),_,Azioni) :- finale(S), !.                                          % restituisco la soluzione (le azioni), se il prossimo nodo da espandere è un nodo finale S
@@ -47,16 +47,6 @@ checkOpen(nodo(S,_,_), [nodo(S,Value,Actions)|Tail], [nodo(S,Value,Actions)|Tail
 % continuo a scorrere la lista open, spostando la head nella nuova lista.
 checkOpen(Nodo,[Head|Tail],[Head|NewList]) :- checkOpen(Nodo,Tail,NewList).
 
-/*
-    controlla se il nodo S è presente nella lista close.
-    Se è presente con un valore maggiore rispetto a quello di S, S viene rimosso da close e spostato in Open con il valore aggiornato
-
-    checkClose(Nodo,Open,Close)
-*/
-checkClose(_,[],[]) :- !.
-
-
-
 
 /* calcolo del valore minimo dei nodi nella lista open
   min(lista,minimo)
@@ -77,12 +67,8 @@ aux([nodo(S,Value,Azioni)], _, EuristicaMinima, nodo(S,Value,Azioni)) :-
   distanza(S,D), EuristicaS is D + Value, EuristicaS < EuristicaMinima, !.
 
 % cerco il minimo della sottosequenza a destra e lo valuto rispetto a S. Se l'euristica di S è minore dell'euristica trovata nella sottosequenza a destra restituisco S.
-aux([nodo(S,Value,Azioni)|Tail], TmpNodeMin , EuristicaMinima , nodo(S,Value,Azioni)) :-
+aux([nodo(S,Value,Azioni)|Tail], TmpNodeMin , EuristicaMinima, nodo(S,Value,Azioni)) :-
   aux(Tail, TmpNodeMin, EuristicaMinima, _),
   distanza(S,D), EuristicaS is D + Value, EuristicaS < EuristicaMinima, !.
-
-% altrimenti continuo a scorre la lista
-aux([_|Tail],TmpNodeMin,EuristicaMinima,NodeMin) :-
-  aux(Tail,TmpNodeMin,EuristicaMinima,NodeMin).
 
 aux(_,NodeMin,_,NodeMin).

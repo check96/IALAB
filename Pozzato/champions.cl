@@ -49,6 +49,7 @@ girone("A"; "B"; "C"; "D"; "E"; "F"; "G"; "H").
 % non è possibile che una squadra sia in due gruppi diversi
 :- appartiene(S,G1), appartiene(S,G2), G1 != G2.
 
+% serve solo per debug
 partite(S1,S2,G,Num):- partita(S1,S2,Num), appartiene(S1,G).
 
 % creazione calendario		partita(SquadraCasa,SquadraTrasferta,Giornata).
@@ -57,17 +58,20 @@ partite(S1,S2,G,Num):- partita(S1,S2,Num), appartiene(S1,G).
 % non è possibile che una squadra giochi più di una partita alla stessa Giornata
 :- squadra(S,_,_), giornata(G), #count{ST : partita(S,ST,G)}=N, #count{SC : partita(SC,S,G)}=M, N+M != 1.
 
-% una partita si pup disputare solo una volta <==> non è possibile che la stessa partita si disputi in giornata diverse
+% una partita si può disputare solo una volta <==> non è possibile che la stessa partita si disputi in giornata diverse
 :- partita(S1,S2,Num1), partita(S1,S2,Num2), Num1 != Num2.
 
-% non � possibile che ogni squadra non affronti in casa un'altra squadra del girone
+% non è possibile che ogni squadra non affronti in casa un'altra squadra del girone. La partita di ritorno è calcolata in automatico.
 :- appartiene(S1,G), #count{S2 : partita(S1,S2,_), appartiene(S2,G)} != 3.
 
-% non � possibile che due squadre della stessa citt� giochino una partita in casa alla stessa giornata
+% non è possibile che due squadre della stessa città giochino una partita in casa alla stessa giornata
 :- partita(S1,_,G), partita(S2,_,G), S1 != S2, squadra(S1,_,C), squadra(S2,_,C).
 
-% una squadra non pu� giocare pi� di due partite consecutive in casa
+% una squadra non può giocare più di due partite consecutive in casa
 :- partita(S,_,G), partita(S,_,G+1), partita(S,_,G+2).
 
-% una squadra non pu� giocare pi� di due partite consecutive in trasferta
+% una squadra non può giocare più di due partite consecutive in trasferta
 :- partita(_,S,G), partita(_,S,G+1), partita(_,S,G+2).
+
+% dovrebbe mettere prima tutte le partite di andata e poi tutte quelle di ritorno
+:- partita(S1,S2,G), partita(S2,S1,G1), S1 != S2, |G1-G| < 3.

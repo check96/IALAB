@@ -61,7 +61,7 @@ partite(S1,S2,G,Num):- partita(S1,S2,Num), appartiene(S1,G).
 % una partita si può disputare solo una volta <==> non è possibile che la stessa partita si disputi in giornata diverse
 :- partita(S1,S2,G1), partita(S1,S2,G2), G1 != G2.
 
-% non è possibile che ogni squadra non affronti in casa un'altra squadra del girone. La partita di ritorno è calcolata in automatico.
+% non è possibile che ogni squadra non affronti in casa un'altra squadra del girone. La partita in trasferta è calcolata in automatico.
 :- appartiene(S1,G), #count{S2 : partita(S1,S2,_), appartiene(S2,G)} != 3.
 
 % non è possibile che due squadre della stessa città giochino una partita in casa alla stessa giornata
@@ -73,5 +73,6 @@ partite(S1,S2,G,Num):- partita(S1,S2,Num), appartiene(S1,G).
 % una squadra non può giocare più di due partite consecutive in trasferta
 :- partita(_,S,G), partita(_,S,G+1), partita(_,S,G+2).
 
-% dovrebbe mettere prima tutte le partite di andata e poi tutte quelle di ritorno
+% le partite di andata sono giocate nelle prime 3 giornate, quelle di ritorno nelle ultime 3.
+% <=> non è possibile che una squadra affronti due volte un'altra squadra nelle prime 3 giornate
 :- partita(S1,S2,G), partita(S2,S1,G1), G <= 3, G1 <= 3.

@@ -43,10 +43,10 @@ girone("A"; "B"; "C"; "D"; "E"; "F"; "G"; "H").
 % creazione Gironi 	appartiene(Squadra,Girone).
 4{appartiene(S,G): squadra(S,_,_)}4 :- girone(G).
 
-% non è possibile che due squadre della stessa nazione siano nello stesso gruppo
+% non è possibile che due squadre della stessa nazione siano nello stesso girone
 :- appartiene(S1,G), appartiene(S2,G), squadra(S1,N,_), squadra(S2,N,_), S1 != S2.
 
-% non è possibile che una squadra sia in due gruppi diversi
+% non è possibile che una squadra sia in due gironi diversi
 :- appartiene(S,G1), appartiene(S,G2), G1 != G2.
 
 % serve solo per debug
@@ -59,7 +59,7 @@ partite(S1,S2,G,Num):- partita(S1,S2,Num), appartiene(S1,G).
 :- squadra(S,_,_), giornata(G), #count{ST : partita(S,ST,G)}=N, #count{SC : partita(SC,S,G)}=M, N+M != 1.
 
 % una partita si può disputare solo una volta <==> non è possibile che la stessa partita si disputi in giornata diverse
-:- partita(S1,S2,Num1), partita(S1,S2,Num2), Num1 != Num2.
+:- partita(S1,S2,G1), partita(S1,S2,G2), G1 != G2.
 
 % non è possibile che ogni squadra non affronti in casa un'altra squadra del girone. La partita di ritorno è calcolata in automatico.
 :- appartiene(S1,G), #count{S2 : partita(S1,S2,_), appartiene(S2,G)} != 3.
@@ -74,4 +74,4 @@ partite(S1,S2,G,Num):- partita(S1,S2,Num), appartiene(S1,G).
 :- partita(_,S,G), partita(_,S,G+1), partita(_,S,G+2).
 
 % dovrebbe mettere prima tutte le partite di andata e poi tutte quelle di ritorno
-:- partita(S1,S2,G), partita(S2,S1,G1), S1 != S2, |G1-G| < 3.
+:- partita(S1,S2,G), partita(S2,S1,G1), G <= 3, G1 <= 3.

@@ -1,9 +1,9 @@
 numRighe(100).
 numColonne(100).
 iniziale(pos(1,15)).
-finale(pos(98,16)).
-finale(pos(65,100)).
-%finale(pos(50,100)).  % NO SOLUZIONI
+%finale(pos(98,16)).     % profondità 132
+%finale(pos(65,100)).   % profondità 165
+finale(pos(50,100)).   % NO SOLUZIONI
 
 occupata(pos(1,2)).
 occupata(pos(1,3)).

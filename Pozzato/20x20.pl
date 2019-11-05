@@ -1,9 +1,9 @@
 numRighe(20).
 numColonne(20).
 iniziale(pos(18,19)).
-finale(pos(9,10)).
-finale(pos(12,10)).
-%finale(pos(1,18)).  % SENZA SOLUZIONI
+%finale(pos(9,10)).   % profondità soluzione 18
+%finale(pos(12,10)).  % profondità soluzione 17
+finale(pos(1,18)).   % SENZA SOLUZIONI
 
 occupata(pos(1,4)).
 occupata(pos(1,9)).

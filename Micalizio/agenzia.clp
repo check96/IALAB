@@ -3,12 +3,11 @@
 (deftemplate location
   (slot name)
   (slot region)
-  (multislot tourismTypes (allowed-values Balneare Montano Lacustre Naturalistico Termale Culturale Religioso Sportivo Enogastronomico))
 )
 
 (deftemplate hotel
   (slot name)
-  (slot stars (type INTEGER) (range 1 4))
+  (slot stars (type INTEGER) (range 1 5))
   (slot numRooms (type INTEGER))
   (slot location)
 )
@@ -22,10 +21,9 @@
   (multislot notTourismTypes)
   (slot stars (default 1)(type INTEGER))
   (slot minLocations (default 1) (type INTEGER))
-  (slot maxLocations (default 5) (type INTEGER))
-  (multislot arrivalDate)
-  (multislot awayDate)
-  (slot nights (default 1) (type INTEGER))
+  (slot maxLocations (default 1) (type INTEGER))
+  (multislot date)
+  (slot nights (default 7) (type INTEGER))
   (slot price (default 0) (type INTEGER))
 )
 
@@ -43,21 +41,28 @@
 
 (deftemplate score
   (slot location)
-  (slot tourismType)
+  (slot tourismType (allowed-values Balneare Montano Lacustre Naturalistico Termale Culturale Religioso Sportivo Enogastronomico))
   (slot score (type INTEGER) (default 0) (range 0 5))
 )
 
 (deffacts locations
-  (location(name Schiavonea)(region Calabria)(tourismTypes Balneare Naturalistico))
-  (location(name Camigliatello)(region Calabria)(tourismTypes Montano Naturalistico Lacustre))
-  (location(name Castrovillari)(region Calabria)(tourismTypes Culturale Enogastronomico Naturalistico))
-  (location(name Bari)(region Puglia)(tourismTypes Balneare Enogastronomico))
-  (location(name Polignano)(region Puglia)(tourismTypes Balneare Enogastronomico))
-  (location(name Alberobello)(region Puglia)(tourismTypes Culturale Enogastronomico))
-  (location(name Matera)(region Basilicata)(tourismTypes Culturale))
-  (location(name Lauria)(region Basilicata)(tourismTypes Termale Lacustre))
-  (location(name Napoli)(region Campania)(tourismTypes Balneare Culturale Enogastronomico Sportivo))
-  (location(name Caserta)(region Campania)(tourismTypes Culturale))
+  (location(name Schiavonea)(region Calabria))
+  (location(name Camigliatello)(region Calabria))
+  (location(name Castrovillari)(region Calabria))
+  (location(name Bari)(region Puglia))
+  (location(name Polignano)(region Puglia))
+  (location(name Alberobello)(region Puglia))
+  (location(name Matera)(region Basilicata))
+  (location(name Lauria)(region Basilicata))
+  (location(name Napoli)(region Campania))
+  (location(name Caserta)(region Campania))
+  (location(name Susa)(region Piemonte))
+  (location(name Montecatini)(region Toscana))
+  (location(name Garda)(region Veneto))
+  (location(name Firenze)(region Toscana))
+  (location(name Bologna)(region EmiliaRomagna))
+  (location(name Torino)(region Piemonte))
+  (location(name Genova)(region Liguria))
 )
 
 (deffacts hotels
@@ -71,6 +76,16 @@
   (hotel(name Trulli)(stars 2)(numRooms 15)(location Alberobello))
   (hotel(name VesuvioHotel)(stars 3)(numRooms 45)(location Napoli))
   (hotel(name Reggia)(stars 4)(numRooms 50)(location Caserta))
+  (hotel(name Hotel_Napoleon_Susa)(stars 3)(numRooms 13)(location Susa))
+  (hotel(name Alpi_Hotel)(stars 4)(numRooms 38)(location Susa))
+  (hotel(name Grand_Hotel_Tettuccio)(stars 4)(numRooms 44)(location Montecatini))
+  (hotel(name Hotel_Roma)(stars 3)(numRooms 21)(location Garda))
+  (hotel(name Hotel_Bonciani)(stars 3)(numRooms 55)(location Firenze))
+  (hotel(name Vinaio)(stars 4)(numRooms 45)(location Firenze))
+  (hotel(name Hotel_Cosmopolitan)(stars 4)(numRooms 139)(location Bologna))
+  (hotel(name Hotel_Alpi_Resort)(stars 3)(numRooms 31)(location Torino))
+  (hotel(name King_Hotel)(stars 4)(numRooms 310)(location Torino))
+  (hotel(name Starhotels_President)(stars 4)(numRooms 237)(location Genova))
 )
 
 (deffacts distances
@@ -119,16 +134,38 @@
   (distance(from Matera)(to Napoli)(distance 251))
   (distance(from Matera)(to Caserta)(distance 256))
   (distance(from Napoli)(to Caserta)(distance 33))
-
+  (distance(from Susa)(to Montecatini)(distance 408))
+  (distance(from Susa)(to Garda)(distance 340))
+  (distance(from Susa)(to Firenze)(distance 459))
+  (distance(from Susa)(to Bologna)(distance 369))
+  (distance(from Susa)(to Torino)(distance 57))
+  (distance(from Susa)(to Genova)(distance 220))
+  (distance(from Montecatini)(to Garda)(distance 265))
+  (distance(from Montecatini)(to Firenze)(distance 48))
+  (distance(from Montecatini)(to Bologna)(distance 107))
+  (distance(from Montecatini)(to Torino)(distance 360))
+  (distance(from Montecatini)(to Genova)(distance 180))
+  (distance(from Garda)(to Firenze)(distance 258))
+  (distance(from Garda)(to Bologna)(distance 165))
+  (distance(from Garda)(to Torino)(distance 298))
+  (distance(from Garda)(to Genova)(distance 280))
+  (distance(from Firenze)(to Bologna)(distance 97))
+  (distance(from Firenze)(to Torino)(distance 420))
+  (distance(from Firenze)(to Genova)(distance 230))
+  (distance(from Bologna)(to Torino)(distance 331))
+  (distance(from Bologna)(to Genova)(distance 296))
+  (distance(from Torino)(to Genova)(distance 171))
 )
+
+;;;Balneare Montano Lacustre Naturalistico Termale Culturale Religioso Sportivo Enogastronomico
 
 (deffacts scores
   (score(location Schiavonea) (tourismType Balneare) (score 3))
-  (score(location Schiavonea) (tourismType Naturalistico) (score 4))
-  (score(location Schiavonea) (tourismType Culturale) (score 1))
-  (score(location Schiavonea) (tourismType Religioso) (score 2))
-  (score(location Schiavonea) (tourismType Enogastronomico) (score 2))
-  (score(location Camigliatello) (tourismType Montano) (score 5))
+  (score(location Schiavonea) (tourismType Naturalistico) (score 3))
+  (score(location Schiavonea) (tourismType Culturale) (score 2))
+  (score(location Schiavonea) (tourismType Religioso) (score 3))
+  (score(location Schiavonea) (tourismType Enogastronomico) (score 4))
+  (score(location Camigliatello) (tourismType Montano) (score 4))
   (score(location Camigliatello) (tourismType Lacustre) (score 3))
   (score(location Camigliatello) (tourismType Naturalistico) (score 4))
   (score(location Camigliatello) (tourismType Enogastronomico) (score 3))
@@ -138,30 +175,56 @@
   (score(location Castrovillari) (tourismType Enogastronomico) (score 4))
   (score(location Matera) (tourismType Naturalistico) (score 3))
   (score(location Matera) (tourismType Culturale) (score 4))
-  (score(location Matera) (tourismType Enogastronomico) (score 2))
+  (score(location Matera) (tourismType Enogastronomico) (score 3))
   (score(location Lauria) (tourismType Montano) (score 2))
-  (score(location Lauria) (tourismType Lacustre) (score 4))
+  (score(location Lauria) (tourismType Lacustre) (score 3))
   (score(location Lauria) (tourismType Naturalistico) (score 3))
   (score(location Lauria) (tourismType Termale) (score 2))
   (score(location Bari) (tourismType Balneare) (score 5))
-  (score(location Bari) (tourismType Naturalistico) (score 1))
-  (score(location Bari) (tourismType Culturale) (score 2))
+  (score(location Bari) (tourismType Naturalistico) (score 2))
+  (score(location Bari) (tourismType Culturale) (score 3))
   (score(location Bari) (tourismType Sportivo) (score 3))
   (score(location Bari) (tourismType Enogastronomico) (score 4))
   (score(location Polignano) (tourismType Balneare) (score 5))
   (score(location Polignano) (tourismType Enogastronomico) (score 3))
   (score(location Alberobello) (tourismType Naturalistico) (score 3))
-  (score(location Alberobello) (tourismType Culturale) (score 3))
-  (score(location Alberobello) (tourismType Enogastronomico) (score 2))
+  (score(location Alberobello) (tourismType Culturale) (score 4))
+  (score(location Alberobello) (tourismType Enogastronomico) (score 3))
   (score(location Caserta) (tourismType Naturalistico) (score 2))
   (score(location Caserta) (tourismType Culturale) (score 5))
-  (score(location Caserta) (tourismType Enogastronomico) (score 1))
+  (score(location Caserta) (tourismType Enogastronomico) (score 2))
   (score(location Napoli) (tourismType Balneare) (score 2))
-  (score(location Napoli) (tourismType Naturalistico) (score 1))
+  (score(location Napoli) (tourismType Naturalistico) (score 2))
   (score(location Napoli) (tourismType Culturale) (score 4))
-  (score(location Napoli) (tourismType Religioso) (score 2))
+  (score(location Napoli) (tourismType Religioso) (score 4))
   (score(location Napoli) (tourismType Sportivo) (score 4))
-  (score(location Napoli) (tourismType Enogastronomico) (score 4))
+  (score(location Napoli) (tourismType Enogastronomico) (score 5))
+  (score(location Susa) (tourismType Montano) (score 5))
+  (score(location Susa) (tourismType Naturalistico) (score 5))
+  (score(location Susa) (tourismType Enogastronomico) (score 3))
+  (score(location Susa) (tourismType Lacustre) (score 3))
+  (score(location Susa) (tourismType Sportivo) (score 4))
+  (score(location Montecatini) (tourismType Termale) (score 4))
+  (score(location Montecatini) (tourismType Culturale) (score 3))
+  (score(location Garda) (tourismType Lacustre) (score 5))
+  (score(location Garda) (tourismType Culturale) (score 2))
+  (score(location Garda) (tourismType Naturalistico) (score 3))
+  (score(location Firenze) (tourismType Culturale) (score 5))
+  (score(location Firenze) (tourismType Religioso) (score 4))
+  (score(location Firenze) (tourismType Enogastronomico) (score 4))
+  (score(location Firenze) (tourismType Sportivo) (score 3))
+  (score(location Bologna) (tourismType Enogastronomico) (score 4))
+  (score(location Bologna) (tourismType Culturale) (score 4))
+  (score(location Bologna) (tourismType Religioso) (score 3))
+  (score(location Bologna) (tourismType Sportivo) (score 3))
+  (score(location Torino) (tourismType Culturale) (score 5))
+  (score(location Torino) (tourismType Religioso) (score 4))
+  (score(location Torino) (tourismType Sportivo) (score 4))
+  (score(location Torino) (tourismType Enogastronomico) (score 4))
+  (score(location Genova) (tourismType Enogastronomico) (score 3))
+  (score(location Genova) (tourismType Balneare) (score 4))
+  (score(location Genova) (tourismType Culturale) (score 3))
+
 )
 
 ;############################
@@ -203,13 +266,13 @@
 )
 
 (defrule simmetricalRules(declare(salience 1000))
-  (rule(if ?type) (then ?type2)(divisor ?div))
+  (rule(if ?type&~nil) (then ?type2&~nil)(divisor ?div))
 =>
   (assert(rule(if ?type2)(then ?type)(divisor ?div)))
 )
 
 (defrule simmetricalRulesNot(declare(salience 1000))
-  (rule(if ?type) (not ?type2)(divisor ?div))
+  (rule(if ?type&~nil) (not ?type2&~nil)(divisor ?div))
 =>
   (assert(rule(if ?type2)(not ?type)(divisor ?div)))
 )
@@ -222,8 +285,8 @@
 
 (defrule start (declare(salience 100))
   =>
-
-  (assert (request))
+  (bind ?year (nth$ 1 (local-time)))
+  (assert (request(date 1 1 (+ 1 ?year))))
   (focus QUESTIONS)
 )
 
@@ -255,33 +318,31 @@
   (question (attribute numPeople)
             (the-question "Quante persone siete? inserire numero ")
             (type INTEGER))
-  (question (attribute nights)
-            (the-question "Durata massima della vacanza? inserire numero dei giorni")
-            (type INTEGER))
   (question (attribute date)
             (the-question "In che data vorresti partire? (dd mm yyyy)"))
-  (question (attribute minLocations)
-            (the-question "C'è un numero minimo di località da visitare? inserire numero ")
-            (type INTEGER))
-  (question (attribute maxLocations)
-            (the-question "C'è un numero massimo di località da visitare? inserire numero ")
+  (question (attribute numLocations)
+            (the-question "Durante la vacanza, preferisci spostarti molto o poco?")
+            (type STRING)
+            (valid-answers molto poco))
+  (question (attribute nights)
+            (the-question "Quanti giorni preferisti che durasse la vacanza? inserire numero dei giorni")
             (type INTEGER))
   (question (attribute notRegions)
             (the-question "Regioni che non vuoi visitare? inserire nome delle regioni ")
             (type STRING)
-            (valid-answers "Calabria" "Puglia" "Basilicata" "Campania"))
+            (valid-answers "calabria" "puglia" "basilicata" "campania" "piemonte" "veneto" "liguria" "toscana" "emiliaromagna"))
   (question (attribute regions)
             (the-question "Preferenze sulle regioni da visitare? inserire nome delle regioni ")
             (type STRING)
-            (valid-answers "Calabria" "Puglia" "Basilicata" "Campania"))
+            (valid-answers "calabria" "puglia" "basilicata" "campania" "piemonte" "veneto" "liguria" "toscana" "emiliaromagna"))
   (question (attribute notTourismTypes)
             (the-question "Ci sono tipi di località che preferiresti evitare?")
             (type STRING)
-            (valid-answers "Balneare" "Montano" "Lacustre" "Naturalistico" "Termale" "Culturale" "Religioso" "Sportivo" "Enogastronomico"))
+            (valid-answers "balneare" "montano" "lacustre" "naturalistico" "termale" "culturale" "religioso" "sportivo" "enogastronomico"))
   (question (attribute tourismTypes)
             (the-question "Che tipo di località vuoi visitare? ")
             (type STRING)
-            (valid-answers "Balneare" "Montano" "Lacustre" "Naturalistico" "Termale" "Culturale" "Religioso" "Sportivo" "Enogastronomico"))
+            (valid-answers "balneare" "montano" "lacustre" "naturalistico" "termale" "culturale" "religioso" "sportivo" "enogastronomico"))
 )
 
 (deftemplate attribute
@@ -303,7 +364,7 @@
 
         (bind ?answ (nth$ ?i $?answer))
         (if(neq (type ?answ) INTEGER) then
-          (bind ?answ (str-cat ?answ)))
+          (bind ?answ (lowcase(str-cat ?answ))))
 
         (if(and (<> (length$ ?valid-answers) 0) (or(not(member$ ?answ ?valid-answers))(neq (type ?answ) ?type))) then
             (bind ?wrong TRUE)
@@ -345,10 +406,16 @@
       (case tourismTypes then (modify ?r (tourismTypes ?v)))
       (case notTourismTypes then (modify ?r (notTourismTypes ?v)))
       (case stars then (modify ?r (stars (nth$ 1 ?v))))
-      (case minLocations then (modify ?r (minLocations (nth$ 1 ?v))))
-      (case maxLocations then (modify ?r (maxLocations (nth$ 1 ?v))))
       (case nights then (modify ?r (nights (nth$ 1 ?v))))
-      (case date then (modify ?r (arrivalDate ?v)))
+      (case date then (modify ?r (date ?v)))
+      (case numLocations then
+              (if (eq(nth$ 1 ?v) molto)
+                then
+                  (modify ?r (minLocations (* 3 (+ 1 (mod ?n 7)))))
+                else
+                  (modify ?r (maxLocations (* 3 (+ 1 (mod ?n 7)))))
+              )
+      )
     )
 )
 
@@ -423,9 +490,112 @@
   ?oavU <- (oav(hotel ?hotel)(type used)(cf ?cfU))
 
   =>
-    (printout t ?cfR "  " ?cfT "  " ?cfU crlf)
     (retract ?oavR ?oavT)
     (bind ?cf (* ?cfU (/ (+ ?cfR ?cfT) 2)))
     (modify ?oavU(type all)(cf ?cf))
-    (printout t ?hotel " ---> " ?cf crlf )
+)
+
+(defrule focus-on-path
+  (not(or(oav(type region)) (oav(type tourismType))))
+=>
+  (focus PATH)
+)
+
+
+;;; #############
+;;; PATH MODULE
+;;; #############
+
+(defmodule PATH (import MAIN ?ALL)(import QUESTIONS ?ALL))
+
+(deffunction calculateAwayDate (?nights $?date)
+
+  (bind ?day (integer (nth$ 1 $?date)))
+  (bind ?month (integer (nth$ 2 $?date)))
+  (bind ?year (integer (nth$ 3 $?date)))
+
+  (if(and(>(+ ?day ?nights) 30)(or(= ?month 04)(= ?month 06)(= ?month 09) (= ?month 11)))
+    then
+      (bind ?awayDate 1 3 (-(+ ?day ?nights) 30) (+ ?month 1) ?year)
+      (return ?awayDate))
+
+  (if(and(>(+ ?day ?nights) 31)(or(= ?month 01)(= ?month 03)(= ?month 05)(= ?month 07)(= ?month 08)(= ?month 10)))
+    then
+      (bind ?awayDate (-(+ ?day ?nights) 31) (+ ?month 1) ?year)
+      (return ?awayDate))
+
+  (if(and(>(+ ?day ?nights) 28)(= ?month 02))
+    then
+      (bind ?awayDate (-(+ ?day ?nights) 28) 03 ?year)
+      (return ?awayDate))
+
+  (if(and(>(+ ?day ?nights) 31)(= ?month 12))
+    then
+      (bind ?awayDate (-(+ ?day ?nights) 31) 01 (+ ?year 1))
+      (return ?awayDate))
+
+  (bind ?awayDate (+ ?day ?nights) ?month ?year)
+  (return ?awayDate)
+)
+
+(deffunction convertDate ($?date)
+  (bind ?daysForMonth (create$ 31 28 31 30 31 30 31 31 30 31 30 31))
+  (bind ?days 0)
+  (loop-for-count (?i 1 (- (nth$ 2 $?date) 1)) do
+    (bind ?days (+ ?days (nth$ ?i ?daysForMonth)))
+
+  (bind ?days (*(+ ?days (nth$ 1 $?date)) (-(nth$ 3 $?date) 2019 -1))))
+  ?days)
+
+(deftemplate MAIN::path
+  (slot pid)
+  (slot hotel)
+  (multislot arrivalDate)
+  (multislot awayDate)
+  (slot price (type FLOAT))
+)
+
+(defglobal ?*path_id* = 1)
+(defrule first-location(declare(salience 100))
+  (request(nights ?nights)(date ?date))
+  (oav(hotel ?hotel)(type all)(cf ?cf))
+  ;(not(oav(hotel ?hotel1&~?hotel)(type all)(cf ?cf1&:(> ?cf1 ?cf))))
+  (test(<= ?*path_id* 5))
+  =>
+  (assert(path(pid ?*path_id*)(hotel ?hotel) (arrivalDate ?date) (awayDate calculateAwayDate ?nights ?date)))
+  (bind ?*path_id* (+ 1 ?*path_id*))
+)
+
+(defrule make-path (declare(salience 90))
+  (request(nights ?n)(date ?date))
+  (oav(hotel ?hotel)(type all)(cf ?cf))
+  =>
+  (assert(path(pid ?*path_id*)(hotel ?hotel)))
+)
+
+
+(defrule focus-on-print (declare(salience -100))
+  =>
+  (focus PRINT)
+)
+;;; ##############
+;;; PRINT MODULE
+;;; ##############
+
+(defmodule PRINT (import MAIN ?ALL)(import QUESTIONS ?ALL))
+(defrule assert-unprinted
+  (hotel (name ?hotel))
+=>
+  (assert(unprinted ?hotel))
+)
+
+(defrule print-results
+  ?oav <- (oav(hotel ?hotel)(type all)(cf ?cf))
+  (hotel(name ?hotel)(location ?loc))
+  ?unpr <- (unprinted ?hotel)
+  (not(oav(hotel ?hotel1&~?hotel)(type all)(cf ?cf1&:(> ?cf1 ?cf))))
+
+  =>
+  (retract ?oav ?unpr)
+  (printout t ?hotel " in " ?loc " ---> " ?cf crlf)
 )

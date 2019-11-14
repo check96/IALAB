@@ -10,7 +10,7 @@
 
 (deftemplate hotel
   (slot name)
-  (slot stars (type INTEGER) (range 1 5))
+  (slot stars (type INTEGER) (range 1 4))
   (slot numRooms (type INTEGER))
   (slot location)
 )
@@ -23,8 +23,9 @@
   (multislot tourismTypes)
   (multislot notTourismTypes)
   (slot stars (default 1)(type INTEGER))
-  (slot minLocations (default 1) (type INTEGER))
-  (slot maxLocations (default 1) (type INTEGER))
+  (slot spostamenti (default poco))
+  (slot minLocations(type INTEGER))
+  (slot maxLocations(type INTEGER))
   (multislot date)
   (slot nights (default 7) (type INTEGER))
   (slot price (default 0) (type INTEGER))
@@ -49,7 +50,7 @@
 )
 
 (deftemplate oav
-  (slot hotel)
+  (slot object)
   (slot type)
   (slot cf)
   (slot ranked (default no))
@@ -64,10 +65,23 @@
 
 (deftemplate path
   (slot pid)
-  (slot hotel)
+  (multislot hotels)
+  (multislot locations)
+  (multislot cfHotels)
   (multislot arrivalDate)
   (multislot awayDate)
   (slot price (type FLOAT))
+  (slot cfPath (type FLOAT))
+  (slot ranked (default no))
+)
+
+(deftemplate stage
+  (slot path)
+  (slot hotel)
+  (slot location)
+  (multislot arrivalDate)
+  (multislot awayDate)
+  (slot numNights (default 2))
 )
 
 ;;; ##########
@@ -109,12 +123,12 @@
   (hotel(name Hotel_Napoleon_Susa)(stars 3)(numRooms 13)(location Susa))
   (hotel(name Alpi_Hotel)(stars 4)(numRooms 38)(location Susa))
   (hotel(name Grand_Hotel_Tettuccio)(stars 4)(numRooms 44)(location Montecatini))
-  (hotel(name Hotel_Roma)(stars 3)(numRooms 21)(location Garda))
+  (hotel(name Hotel_Garda)(stars 3)(numRooms 21)(location Garda))
   (hotel(name Brenta_Hotel)(stars 4)(numRooms 71)(location Brenta))
   (hotel(name Hotel_Bonciani)(stars 3)(numRooms 55)(location Firenze))
   (hotel(name Vinaio)(stars 4)(numRooms 45)(location Firenze))
   (hotel(name Hotel_Cosmopolitan)(stars 4)(numRooms 139)(location Bologna))
-  (hotel(name Hotel_Alpi_Resort)(stars 3)(numRooms 31)(location Torino))
+  (hotel(name Granata_Resort)(stars 3)(numRooms 31)(location Torino))
   (hotel(name King_Hotel)(stars 4)(numRooms 310)(location Torino))
   (hotel(name Starhotels_President)(stars 4)(numRooms 237)(location Genova))
 )
@@ -296,13 +310,13 @@
 )
 
 (defrule simmetricalRules(declare(salience 1000))
-  (rule(if ?type & ~nil) (then ?type2 & ~nil)(divisor ?div))
+  (rule(if ?type) (then ?type2 & ~nil)(divisor ?div))
 =>
   (assert(rule(if ?type2)(then ?type)(divisor ?div)))
 )
 
 (defrule simmetricalRulesNot(declare(salience 1000))
-  (rule(if ?type & ~nil) (not ?type2 & ~nil)(divisor ?div))
+  (rule(if ?type) (not ?type2 & ~nil)(divisor ?div))
 =>
   (assert(rule(if ?type2)(not ?type)(divisor ?div)))
 )
@@ -316,7 +330,7 @@
 (defrule start
   =>
   (bind ?year (nth$ 1 (local-time)))
-  (assert (rank (create$ ))(request(date 1 1 (+ 1 ?year))))
+  (assert (rank (create$ ))(pathRank (create$ )) (request(date 1 1 (+ 1 ?year))))
   (focus QUESTIONS RULES PATH PRINT-RESULTS)
 )
 
@@ -355,10 +369,10 @@
             (type INTEGER))
   (question (attribute date)
             (the-question "In che data vorresti partire? (dd mm yyyy)"))
-  (question (attribute numLocations)
+  (question (attribute spostamenti)
             (the-question "Durante la vacanza, preferisci spostarti molto o poco?")
             (type STRING)
-            (valid-answers molto poco))
+            (valid-answers "molto" "poco"))
   (question (attribute nights)
             (the-question "Quanti giorni preferisti che durasse la vacanza? inserire numero dei giorni")
             (type INTEGER))
@@ -437,16 +451,24 @@
       (case notTourismTypes then (modify ?r (notTourismTypes ?v)))
       (case stars then (modify ?r (stars (nth$ 1 ?v))))
       (case nights then (modify ?r (nights (nth$ 1 ?v))))
-      (case date then (modify ?r (date ?v)))
-      (case numLocations then
-              (if (eq(nth$ 1 ?v) molto)
-                then
-                  (modify ?r (minLocations (* 3 (+ 1 (mod ?n 7)))))
-                else
-                  (modify ?r (maxLocations (* 3 (+ 1 (mod ?n 7)))))
-              )
-      )
+      (case spostamenti then (modify ?r (spostamenti (nth$ 1 ?v))))
+      (case price then (modify ?r (price (nth$ 1 ?v))))
+      (case date then
+          (bind ?daysForMonth (create$ 31 28 31 30 31 30 31 31 30 31 30 31))
+            ;;;; AGGIUNGERE CONTROLLI SULLA DATA
+          (modify ?r (date ?v)))
     )
+)
+
+(defrule numLocations (declare(salience -10))
+  ?req <- (request(spostamenti ?value)(nights ?nights))
+=>
+  (if (eq ?value molto)
+      then
+        (modify ?req(minLocations (+ 2 (div ?nights 8))) (maxLocations (+ 3 (div ?nights 8))))
+      else
+        (modify ?req(minLocations (+ 1 (div ?nights 8))) (maxLocations (+ 2 (div ?nights 8))))
+  )
 )
 
 ;;; ###############
@@ -456,16 +478,16 @@
 (defmodule RULES (import MAIN ?ALL)(export ?ALL))
 
 (defrule assertOAV
-  (request(numPeople ?numPeople))
-  (hotel(name ?hotel)(stars ?numStars)(numRooms ?numRooms&:(>= ?numRooms (div (+ ?numPeople 1) 2))))
+  (request(numPeople ?numPeople)(stars ?stars))
+  (hotel(name ?hotel)(stars ?numStars&:(>= ?numStars ?stars))(numRooms ?numRooms&:(>= ?numRooms (div (+ ?numPeople 1) 2))))
 =>
-  (assert(oav(hotel ?hotel)(type region)(cf 0.5)))
-  (assert(oav(hotel ?hotel)(type used)(cf 1)))
-  (assert(oav(hotel ?hotel)(type stars)(cf (/ ?numStars 5))))
+  (assert(oav(object ?hotel)(type region)(cf 0.5)))
+  (assert(oav(object ?hotel)(type used)(cf 1)))
+  (assert(oav(object ?hotel)(type stars)(cf (/ ?numStars 5))))
 )
 
 (defrule CF_regions
-  ?oav <- (oav(hotel ?hotel)(type region))
+  ?oav <- (oav(object ?hotel)(type region))
   (request(regions $?regions)(notRegions $?notRegions))
   (hotel(name ?hotel)(location ?location))
   (location(name ?location)(region ?region))
@@ -494,24 +516,24 @@
     (if(and(member$ ?r:if $?ttypes)(eq ?r:not ?s:tourismType)) then
       (bind ?*value* (- ?*value* (/ (* 0.1 (- 6 ?s:score)) (length$ $?ttypes) ?r:divisor))))
   )
-  (assert(oav(hotel ?hotel)(type tourismType)(cf ?*value*)))
+  (assert(oav(object ?hotel)(type tourismType)(cf ?*value*)))
   (bind ?*value* 0.5)
 )
 
 (defrule CF_Used
   (reservation(hotels $?hotels))
   (hotel(name ?hotel))
-  ?oav <- (oav(hotel ?hotel)(type used)(cf ?cf))
+  ?oav <- (oav(object ?hotel)(type used)(cf ?cf))
   (test(member$ ?hotel $?hotels))
 =>
   (modify ?oav(cf (* ?cf 0.9)))
 )
 
 (defrule combineCF (declare(salience -10))
-  ?oavR <- (oav(hotel ?hotel)(type region)(cf ?cfR))
-  ?oavT <- (oav(hotel ?hotel)(type tourismType)(cf ?cfT))
-  ?oavS <- (oav(hotel ?hotel)(type stars)(cf ?cfS))
-  ?oavU <- (oav(hotel ?hotel)(type used)(cf ?cfU))
+  ?oavR <- (oav(object ?hotel)(type region)(cf ?cfR))
+  ?oavT <- (oav(object ?hotel)(type tourismType)(cf ?cfT))
+  ?oavS <- (oav(object ?hotel)(type stars)(cf ?cfS))
+  ?oavU <- (oav(object ?hotel)(type used)(cf ?cfU))
   =>
     (retract ?oavR ?oavT ?oavS)
     (bind ?cf (* ?cfU (+ (* 0.5 ?cfR) (* 0.4 ?cfT) (* 0.1 ?cfS))))
@@ -520,8 +542,8 @@
 )
 
 (defrule createRanking (declare (salience -50))
-  ?oav <- (oav(hotel ?hotel)(type all)(cf ?cf&:(> ?cf 0.5))(ranked no))
-  (not(oav(hotel ?hotel1&~?hotel)(type all)(cf ?cf1&:(> ?cf1 ?cf))(ranked no)))
+  ?oav <- (oav(object ?hotel)(type all)(cf ?cf&:(> ?cf 0.5))(ranked no))
+  (not(oav(object ~?hotel)(type all)(cf ?cf1&:(> ?cf1 ?cf))(ranked no)))
   ?rank <- (rank $?ranks)
   =>
   (retract ?rank)
@@ -532,10 +554,10 @@
 (defrule print-results (declare(salience -100))
 
   (rank $? ?hotel $?)
-  (oav(hotel ?hotel)(type all)(cf ?cf))
+  (oav(object ?hotel)(type all)(cf ?cf))
   (hotel(name ?hotel)(location ?location))
 =>
-  (printout t ?hotel "  in  " ?location "   -->  " ?cf crlf)
+  ;(printout t ?hotel "  in  " ?location "   -->  " ?cf crlf)
 )
 
 ;;; #############
@@ -583,21 +605,257 @@
   (bind ?days (*(+ ?days (nth$ 1 $?date)) (-(nth$ 3 $?date) 2019 -1))))
   ?days)
 
-(defrule first-location
-  (request(nights ?nights)(date ?date))
-  (rank $?ranks)
-  =>
-  ;  (assert(path(pid (gensym*))(hotel ?hotel) (arrivalDate ?date) (awayDate calculateAwayDate ?nights ?date)))
+(defrule first-location (declare(salience 100))
+  (rank $? ?hotel $?)
+  (hotel(name ?hotel)(location ?location))
+  (oav(object ?hotel)(type all)(cf ?cf))
+=>
+  (bind ?pid (gensym))
+  (assert(path(pid ?pid)(hotels ?hotel)(locations ?location)(cfHotels ?cf)(cfPath ?cf)))
 )
 
-(defrule make-path
-  (request(nights ?n)(date ?date))
-  (oav(hotel ?hotel)(type all)(cf ?cf))
-  =>
+(defrule make-path (declare(salience 90))
+  (request(maxLocations ?max))
+  ?path <- (path(pid ?pid)(hotels $?hotels)(locations $?locations)(cfHotels $?cfHotels)(cfPath ?cfPath))
+  (rank $? ?hotel1 $?)
+  (hotel(name ?hotel&:(eq  ?hotel (nth$ (length$ $?hotels) $?hotels))) (location ?loc))
+  (hotel(name ?hotel1)(location ?loc1))
+  (oav(object ?hotel1)(type all)(cf ?cfHotel))
+  (test(< (length$ $?hotels) ?max))
+  (test(not(member$ ?hotel1 $?hotels)))
+  (test(not(member$ ?loc1 $?locations)))
+
+  (distance(from ?loc)(to ?loc1)(distance ?d&:(<= ?d 200)))
+=>
+  (bind ?cf (/ (+ (* ?cfPath (length$ $?hotels)) ?cfHotel) (+ 1 (length$ $?hotels))))
+  (modify ?path(hotels $?hotels ?hotel1)(locations $?locations ?loc1) (cfHotels $?cfHotels ?cfHotel) (cfPath ?cf))
 )
+
+;(defrule deleteForNum (declare(salience 85))
+;  (request(minLocations ?min))
+;  ?path <- (path(hotels $?hotels))
+;  (test(< (length$ $?hotels) ?min))
+;=>
+;  (retract ?path)
+;)
+
+(defrule cf_Distances (declare(salience 70))
+  (path(pid ?pid)(locations $?locations)(cfPath ?cf)(ranked no))
+=>
+  (bind ?value 0)
+  (loop-for-count (?i 1 (- (length$ $?locations) 1)) do
+    (do-for-all-facts ((?d distance)) (and(eq ?d:from (nth$ ?i $?locations))(eq ?d:to (nth$ (+ 1 ?i) $?locations)))
+      (bind ?value (+ ?value ?d:distance)))
+  )
+
+  (bind ?cfD (/ (- ?value (* 100 (length$ $?locations))) 1000))
+  (if (< ?cfD 0) then
+    (bind ?cfD 0))
+
+  (assert(oav(object ?pid)(type distances)(cf ?cfD)))
+)
+
+(deffunction dayForHotel (?totalDays $?cf)
+  (bind ?total 0.0)
+
+  (loop-for-count (?i 1 (length$ $?cf))
+    (bind ?total (+ ?total (nth$ ?i $?cf))))
+  (bind $?days (create$))
+  (bind ?sum 0)
+
+  (loop-for-count (?i 1 (length$ $?cf))
+    (bind ?day (round(/ (* ?totalDays (nth$ ?i $?cf)) ?total)))
+    (bind $?days (create$ $?days ?day))
+    (bind ?sum (+ ?sum ?day))
+  )
+
+  (bind ?totalDays (- ?totalDays ?sum))
+  (loop-for-count (?i 1 ?totalDays)
+    (bind ?d (+ 1(nth$ ?i $?days)))
+    (replace$ $?days ?i ?i ?d))
+
+$?days)
+
+(defrule make-stages (declare(salience 60))
+  (request(nights ?nights)(date $?date))
+  (path (pid ?pid)(hotels $?hotels)(locations $?locations)(cfHotels $?cfs)(ranked no))
+
+=>
+  (bind $?days (dayForHotel ?nights $?cfs))
+
+  (loop-for-count (?i 1 (length$ $?hotels))
+    (assert(stage(path ?pid)(hotel (nth$ ?i $?hotels))(location (nth$ ?i $?locations))(arrivalDate $?date)(awayDate (calculateAwayDate (nth$ ?i $?days) $?date)) (numNights (nth$ ?i $?days))))
+    (bind $?date (calculateAwayDate (nth$ ?i $?days) $?date)))
+)
+
+(deffunction verifyRooms(?numPeople ?hotel ?numRooms $?dates)
+    (bind ?sum 0)
+    (do-for-all-facts((?book reservation))
+      (eq ?book:hotel ?hotel)
+
+      (bind ?arrive (convertDate ?book:arrivalDate))
+      (bind ?away (convertDate ?book:awayDate))
+      (bind ?arrivalDate (convertDate (create$ (nth$ 1 $?dates)(nth$ 2 $?dates)(nth$ 3 $?dates))))
+      (bind ?awayDate (convertDate (create$ (nth$ 4 $?dates)(nth$ 5 $?dates)(nth$ 6 $?dates))))
+      (if(and (or (< ?arrivalDate ?arrive)(> ?arrivalDate ?away)) (or(< ?awayDate ?arrive)(> ?awayDate ?away)))
+        then
+          (bind ?sum (+ ?sum ?book:numPeople)))
+    )
+    (return (< (- ?numRooms ?sum) (div (+ ?numPeople 1) 2)))
+)
+
+(defrule verifyAvailable (declare(salience 50))
+  (request(numPeople ?numPeople))
+  ?path <- (path (pid ?pid)(ranked no))
+  ?stage <- (stage (path ?pid)(hotel ?hotel)(arrivalDate $?date)(awayDate $?away))
+  (hotel(name ?hotel)(numRooms ?numRooms))
+=>
+  (if(verifyRooms ?numPeople ?hotel ?numRooms (create$ $?date $?away)) then
+    (retract ?stage ?path))
+)
+
+(defrule pruning-samePath (declare(salience 40))
+  (path(pid ?pid)(hotels $?hotels)(ranked no))
+  ?path <- (path(pid ~?pid)(hotels $?hotels1)(ranked no))
+
+  (test(=(length$ $?hotels) (length$ $?hotels1)))
+  (test(subsetp $?hotels $?hotels1))
+  =>
+  (retract ?path)
+)
+
+(defrule cf_Price
+  (request(numPeople ?numPeople)(price ?priceReq)(nights ?nights))
+  ?path <- (path(pid ?pid)(ranked no))
+=>
+  (bind ?price 0)
+  (do-for-all-facts ((?s stage) (?h hotel)) (and(eq ?s:path ?pid)(eq ?s:hotel ?h:name))
+    (bind ?price (+ ?price (* ?s:numNights 25 (+ ?h:stars 1) (div (+ ?numPeople 1) 2)))))
+
+  (if (or(< ?price ?priceReq)(= ?priceReq 0))
+    then
+      (assert(oav(object ?pid)(type price)(cf (/ ?price ?nights 125))))
+      (assert(price ?pid ?price))
+    else
+      (retract ?path)
+  )
+)
+
+(defrule combineOAV
+  ?oavD <- (oav(object ?pid)(type distances)(cf ?cfD))
+  ?oavP <- (oav(object ?pid)(type price)(cf ?cfP))
+  ?path <- (path(pid ?pid)(cfPath ?cfPath)(ranked no))
+  ?p <- (price ?pid ?price)
+=>
+  (retract ?oavD ?oavP ?p)
+  (modify ?path(price ?price)(cfPath (- (+ (* 0.6 ?cfPath) (* 0.4 ?cfP)) ?cfD)))
+)
+
+(defrule rankPath (declare(salience -50))
+  ?path <- (path(pid ?pid)(cfPath ?cf&:(> ?cf 0.5))(ranked no))
+  (not(path(pid ~?pid)(cfPath ?cf1&:(> ?cf1 ?cf))(ranked no)))
+  ?rank <- (pathRank $?ranks)
+  =>
+  (retract ?rank)
+  (modify ?path (ranked yes))
+  (assert(pathRank $?ranks ?pid))
+)
+
+(defglobal ?*count* = 1)
+
+(defrule print-path (declare(salience -100))
+  (pathRank $? ?path $?)
+  ?p <- (path(pid ?path)(cfPath ?cfPath)(price ?price))
+=>
+  (if (<= ?*count* 5)
+    then
+      (printout t ?*count* " -   " ?path "  -->  " ?price "€." crlf)
+      (do-for-all-facts ((?s stage)) (eq ?s:path ?path)
+        (printout t "    " ?s:hotel " in " ?s:location "  " ?s:arrivalDate "     " ?s:awayDate crlf))
+      (bind ?*count* (+ 1 ?*count*))
+    else
+      (retract ?p))
+)
+
+(defrule choosePath (declare(salience -110))
+  (pathRank $?paths)
+  =>
+    (bind ?in -1)
+  	(while(or(< ?in 0)(> ?in 5)) do
+      (printout t "Quale soluzione scegli? inserisci il numero dell'indice, altrimenti 0 per modificare la richiesta" crlf)
+      (bind ?in (read)))
+
+    (if (<> ?in 0)
+      then
+       (assert(selected(?in)))
+      else
+  			(printout t "cosa vuoi cambiare? inserisci i numeri corrispondenti"crlf
+  			 "1 nome" crlf
+  			 "2 numero di persone" crlf
+  			 "3 regioni preferite" crlf
+  			 "4 regioni da evitare" crlf
+  			 "5 tipi di turismo preferiti" crlf
+  			 "6 tipi di turismo da evitare" crlf
+  			 "7 numero di stelle dell'albergo" crlf
+  			 "8 numero di notti" crlf
+  			 "9 prezzo" crlf)
+
+  			(bind $?input (readline))
+
+        (loop-for-count (?i 1 (length$ $?input))
+          (bind ?inp (nth$ ?i $?input))
+        	(switch ?inp
+    				(case 1 then (assert (toModify name)))
+    				(case 2 then (assert (toModify numPeople)))
+    				(case 3 then (assert (toModify regions)))
+    				(case 4 then (assert (toModify notRegions)))
+    				(case 5 then (assert (toModify tourismTypes)))
+    				(case 6 then (assert (toModify notTourismTypes)))
+    				(case 7 then (assert (toModify stars)))
+    				(case 8 then (assert (toModify nights)))
+    				(case 9 then (assert (toModify price)))
+    			)
+        )
+  	)
+)
+
+(defrule checkSelected
+
+	?mod <- (toModify ?attr))
+	?quest <- (question (attribute ?attr))
+
+	=>
+	(modify ?quest (already-asked FALSE))
+	(retract ?mod)
+  (assert(resetModify))
+)
+
+(defrule createReservation (declare(salience -10))
+  ?sel <- (selected ?num)
+  ?path <- (pathRank $?ranks)
+  ?req <- (request(name ?name) (numPeople ?numPeople))
+
+  =>
+  (assert(reservation(name ?name)(numPeople ?numPeople)(path ?pid)))
+
+  (retract ?sel ?req ?opt)
+  (printout t "Prenotazione effettuata!" crlf)
+  (printout t "Vuoi fare una nuova richiesta o terminare?" crlf)
+  (bind ?in (read))
+
+  (if(eq ?in nuova)
+    then
+      (assert(reset))
+      (focus QUESTIONS REQUEST CHOOSE PRINT)
+  )
+)
+
 
 ;;; ##############
 ;;; PRINT MODULE
 ;;; ##############
 
 (defmodule PRINT-RESULTS (import MAIN ?ALL)(export ?ALL))
+
+;1) oavPrice
+;2) reset all

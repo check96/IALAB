@@ -16,7 +16,7 @@
 )
 
 (deftemplate request
-  (slot name (default Person))
+  (slot name (default (gensym)))
   (slot numPeople (default 1)(type INTEGER))
   (multislot regions)
   (multislot notRegions)
@@ -29,12 +29,6 @@
   (multislot date)
   (slot nights (default 7) (type INTEGER))
   (slot price (default 0) (type INTEGER))
-)
-
-(deftemplate reservation
-  (slot name)
-  (multislot hotels)
-;; DA COMPLETARE
 )
 
 (deftemplate distance
@@ -60,7 +54,7 @@
   (slot if)
   (slot then)
   (slot not)
-  (slot divisor (default 2))
+  (slot coefficient (default 2))
 )
 
 (deftemplate path
@@ -70,7 +64,7 @@
   (multislot cfHotels)
   (multislot arrivalDate)
   (multislot awayDate)
-  (slot price (type FLOAT))
+  (slot price)
   (slot cfPath (type FLOAT))
   (slot ranked (default no))
 )
@@ -82,6 +76,15 @@
   (multislot arrivalDate)
   (multislot awayDate)
   (slot numNights (default 2))
+)
+
+
+(deftemplate reservation
+  (slot name)
+  (slot path)
+  (slot numPeople)
+  (slot price)
+;; DA COMPLETARE
 )
 
 ;;; ##########
@@ -100,12 +103,12 @@
   (location(name Napoli)(region campania))
   (location(name Caserta)(region campania))
   (location(name Susa)(region piemonte))
+  (location(name Torino)(region piemonte))
   (location(name Montecatini)(region toscana))
   (location(name Brenta)(region trentino))
   (location(name Garda)(region veneto))
   (location(name Firenze)(region toscana))
   (location(name Bologna)(region emiliaromagna))
-  (location(name Torino)(region piemonte))
   (location(name Genova)(region liguria))
 )
 
@@ -283,42 +286,42 @@
 )
 
 (deffacts experience_rules
-  (rule(if balneare) (not montano)(divisor 2))
-  (rule(if balneare) (then naturalistico )(divisor 3))
-  (rule(if balneare) (then enogastronomico)(divisor 3))
-  (rule(if balneare) (then sportivo)(not lacustre)(divisor 4))
-  (rule(if montano) (then naturalistico)(divisor 2))
-  (rule(if montano) (then sportivo)(divisor 3))
-  (rule(if montano) (then lacustre)(divisor 3))
-  (rule(if montano) (then religioso)(divisor 4))
-  (rule(if montano) (then enogastronomico)(divisor 4))
-  (rule(if montano) (then culturale)(divisor 5))
-  (rule(if lacustre) (then termale) (divisor 2))
-  (rule(if lacustre) (then naturalistico) (not sportivo)(divisor 3))
-  (rule(if naturalistico) (not religioso) (divisor 3))
-  (rule(if naturalistico) (not culturale) (divisor 3))
-  (rule(if naturalistico) (then sportivo) (divisor 4))
-  (rule(if naturalistico) (then enogastronomico) (divisor 4))
-  (rule(if naturalistico) (then termale) (divisor 5))
-  (rule(if termale)(not sportivo)(divisor 2))
-  (rule(if termale)(not culturale)(divisor 3))
-  (rule(if termale)(not religioso)(divisor 3))
-  (rule(if termale)(not enogastronomico)(divisor 3))
-  (rule(if culturale) (then religioso)(not sportivo)(divisor 2))
-  (rule(if religioso) (not sportivo)(divisor 2))
-  (rule(if sportivo) (not enogastronomico)(divisor 3))
+  (rule(if balneare) (not montano)(coefficient 2))
+  (rule(if balneare) (then naturalistico )(coefficient 3))
+  (rule(if balneare) (then enogastronomico)(coefficient 3))
+  (rule(if balneare) (then sportivo)(not lacustre)(coefficient 4))
+  (rule(if montano) (then naturalistico)(coefficient 2))
+  (rule(if montano) (then sportivo)(coefficient 3))
+  (rule(if montano) (then lacustre)(coefficient 3))
+  (rule(if montano) (then religioso)(coefficient 4))
+  (rule(if montano) (then enogastronomico)(coefficient 4))
+  (rule(if montano) (then culturale)(coefficient 5))
+  (rule(if lacustre) (then termale) (coefficient 2))
+  (rule(if lacustre) (then naturalistico) (not sportivo)(coefficient 3))
+  (rule(if naturalistico) (not religioso) (coefficient 3))
+  (rule(if naturalistico) (not culturale) (coefficient 3))
+  (rule(if naturalistico) (then sportivo) (coefficient 4))
+  (rule(if naturalistico) (then enogastronomico) (coefficient 4))
+  (rule(if naturalistico) (then termale) (coefficient 5))
+  (rule(if termale)(not sportivo)(coefficient 2))
+  (rule(if termale)(not culturale)(coefficient 3))
+  (rule(if termale)(not religioso)(coefficient 3))
+  (rule(if termale)(not enogastronomico)(coefficient 3))
+  (rule(if culturale) (then religioso)(not sportivo)(coefficient 2))
+  (rule(if religioso) (not sportivo)(coefficient 2))
+  (rule(if sportivo) (not enogastronomico)(coefficient 3))
 )
 
 (defrule simmetricalRules(declare(salience 1000))
-  (rule(if ?type) (then ?type2 & ~nil)(divisor ?div))
+  (rule(if ?type) (then ?type2 & ~nil)(coefficient ?div))
 =>
-  (assert(rule(if ?type2)(then ?type)(divisor ?div)))
+  (assert(rule(if ?type2)(then ?type)(coefficient ?div)))
 )
 
 (defrule simmetricalRulesNot(declare(salience 1000))
-  (rule(if ?type) (not ?type2 & ~nil)(divisor ?div))
+  (rule(if ?type) (not ?type2 & ~nil)(coefficient ?div))
 =>
-  (assert(rule(if ?type2)(not ?type)(divisor ?div)))
+  (assert(rule(if ?type2)(not ?type)(coefficient ?div)))
 )
 
 (defrule simmetricalDistance (declare(salience 1000))
@@ -330,8 +333,8 @@
 (defrule start
   =>
   (bind ?year (nth$ 1 (local-time)))
-  (assert (rank (create$ ))(pathRank (create$ )) (request(date 1 1 (+ 1 ?year))))
-  (focus QUESTIONS RULES PATH PRINT-RESULTS)
+  (assert(request(date 1 1 (+ 1 ?year))))
+  (focus QUESTIONS RULES PATH)
 )
 
 ;;; #################
@@ -405,11 +408,9 @@
       (bind $?answer (explode$ $?a))
       (bind ?wrong FALSE)
       (loop-for-count (?i 1 (length$ $?answer)) do
-
         (bind ?answ (nth$ ?i $?answer))
         (if(neq (type ?answ) INTEGER) then
-          (bind ?answ (lowcase(str-cat ?answ))))
-
+          (bind ?answ (lowcase (str-cat ?answ))))
         (if(and (<> (length$ ?valid-answers) 0) (or(not(member$ ?answ ?valid-answers))(neq (type ?answ) ?type))) then
             (bind ?wrong TRUE)
             (break))
@@ -460,7 +461,7 @@
     )
 )
 
-(defrule numLocations (declare(salience -10))
+(defrule lastChecks (declare(salience -10))
   ?req <- (request(spostamenti ?value)(nights ?nights))
 =>
   (if (eq ?value molto)
@@ -469,20 +470,20 @@
       else
         (modify ?req(minLocations (+ 1 (div ?nights 8))) (maxLocations (+ 2 (div ?nights 8))))
   )
+  (assert(rank (create$ ))(pathRank (create$ )))
 )
 
 ;;; ###############
 ;;  RULES MODULE
 ;;; ###############
 
-(defmodule RULES (import MAIN ?ALL)(export ?ALL))
+(defmodule RULES (import MAIN ?ALL)(import QUESTIONS ?ALL)(export ?ALL))
 
 (defrule assertOAV
   (request(numPeople ?numPeople)(stars ?stars))
   (hotel(name ?hotel)(stars ?numStars&:(>= ?numStars ?stars))(numRooms ?numRooms&:(>= ?numRooms (div (+ ?numPeople 1) 2))))
 =>
   (assert(oav(object ?hotel)(type region)(cf 0.5)))
-  (assert(oav(object ?hotel)(type used)(cf 1)))
   (assert(oav(object ?hotel)(type stars)(cf (/ ?numStars 5))))
 )
 
@@ -512,21 +513,22 @@
   )
   (do-for-all-facts ((?s score)(?r rule)) (eq ?s:location ?location)
     (if(and(member$ ?r:if $?ttypes)(eq ?r:then ?s:tourismType)) then
-      (bind ?*value* (+ ?*value* (/ (* 0.1 ?s:score) (length$ $?ttypes) ?r:divisor ))))
+      (bind ?*value* (+ ?*value* (/ (* 0.1 ?s:score) (length$ $?ttypes) ?r:coefficient ))))
     (if(and(member$ ?r:if $?ttypes)(eq ?r:not ?s:tourismType)) then
-      (bind ?*value* (- ?*value* (/ (* 0.1 (- 6 ?s:score)) (length$ $?ttypes) ?r:divisor))))
+      (bind ?*value* (- ?*value* (/ (* 0.1 (- 6 ?s:score)) (length$ $?ttypes) ?r:coefficient))))
   )
   (assert(oav(object ?hotel)(type tourismType)(cf ?*value*)))
   (bind ?*value* 0.5)
 )
 
 (defrule CF_Used
-  (reservation(hotels $?hotels))
-  (hotel(name ?hotel))
-  ?oav <- (oav(object ?hotel)(type used)(cf ?cf))
-  (test(member$ ?hotel $?hotels))
+  (request)
+  (hotel (name ?hotel))
 =>
-  (modify ?oav(cf (* ?cf 0.9)))
+  (bind ?value 1)
+  (do-for-all-facts ((?s stage)) (eq ?s:hotel ?hotel)
+    (bind ?value (* ?value 0.9)))
+  (assert(oav(object ?hotel)(type used) (cf ?value)))
 )
 
 (defrule combineCF (declare(salience -10))
@@ -564,7 +566,7 @@
 ;;; PATH MODULE
 ;;; #############
 
-(defmodule PATH (import MAIN ?ALL)(import RULES ?ALL)(export ?ALL))
+(defmodule PATH (import MAIN ?ALL)(import RULES ?ALL)(import QUESTIONS ?ALL)(export ?ALL))
 
 (deffunction calculateAwayDate (?nights $?date)
 
@@ -631,16 +633,9 @@
   (modify ?path(hotels $?hotels ?hotel1)(locations $?locations ?loc1) (cfHotels $?cfHotels ?cfHotel) (cfPath ?cf))
 )
 
-;(defrule deleteForNum (declare(salience 85))
-;  (request(minLocations ?min))
-;  ?path <- (path(hotels $?hotels))
-;  (test(< (length$ $?hotels) ?min))
-;=>
-;  (retract ?path)
-;)
-
 (defrule cf_Distances (declare(salience 70))
   (path(pid ?pid)(locations $?locations)(cfPath ?cf)(ranked no))
+  (not(calculated ?pid))
 =>
   (bind ?value 0)
   (loop-for-count (?i 1 (- (length$ $?locations) 1)) do
@@ -690,16 +685,14 @@ $?days)
 
 (deffunction verifyRooms(?numPeople ?hotel ?numRooms $?dates)
     (bind ?sum 0)
-    (do-for-all-facts((?book reservation))
-      (eq ?book:hotel ?hotel)
-
-      (bind ?arrive (convertDate ?book:arrivalDate))
-      (bind ?away (convertDate ?book:awayDate))
+    (do-for-all-facts((?s stage))  (eq ?s:hotel ?hotel)
+      (bind ?arrive (convertDate ?s:arrivalDate))
+      (bind ?away (convertDate ?s:awayDate))
       (bind ?arrivalDate (convertDate (create$ (nth$ 1 $?dates)(nth$ 2 $?dates)(nth$ 3 $?dates))))
       (bind ?awayDate (convertDate (create$ (nth$ 4 $?dates)(nth$ 5 $?dates)(nth$ 6 $?dates))))
       (if(and (or (< ?arrivalDate ?arrive)(> ?arrivalDate ?away)) (or(< ?awayDate ?arrive)(> ?awayDate ?away)))
         then
-          (bind ?sum (+ ?sum ?book:numPeople)))
+          (bind ?sum (+ ?sum ?s:numPeople)))
     )
     (return (< (- ?numRooms ?sum) (div (+ ?numPeople 1) 2)))
 )
@@ -709,6 +702,7 @@ $?days)
   ?path <- (path (pid ?pid)(ranked no))
   ?stage <- (stage (path ?pid)(hotel ?hotel)(arrivalDate $?date)(awayDate $?away))
   (hotel(name ?hotel)(numRooms ?numRooms))
+  (not(calculated ?pid))
 =>
   (if(verifyRooms ?numPeople ?hotel ?numRooms (create$ $?date $?away)) then
     (retract ?stage ?path))
@@ -716,17 +710,20 @@ $?days)
 
 (defrule pruning-samePath (declare(salience 40))
   (path(pid ?pid)(hotels $?hotels)(ranked no))
-  ?path <- (path(pid ~?pid)(hotels $?hotels1)(ranked no))
+  ?path <- (path(pid ?pid1 & ~?pid)(hotels $?hotels1)(ranked no))
 
   (test(=(length$ $?hotels) (length$ $?hotels1)))
   (test(subsetp $?hotels $?hotels1))
   =>
   (retract ?path)
+  (do-for-all-facts((?s stage))  (eq ?s:path ?pid1)
+    (retract ?s))
 )
 
-(defrule cf_Price
+(defrule cf_Price (declare(salience 30))
   (request(numPeople ?numPeople)(price ?priceReq)(nights ?nights))
-  ?path <- (path(pid ?pid)(ranked no))
+  ?path <- (path(pid ?pid)(ranked no)(price nil))
+  (not(calculated ?pid))
 =>
   (bind ?price 0)
   (do-for-all-facts ((?s stage) (?h hotel)) (and(eq ?s:path ?pid)(eq ?s:hotel ?h:name))
@@ -735,7 +732,7 @@ $?days)
   (if (or(< ?price ?priceReq)(= ?priceReq 0))
     then
       (assert(oav(object ?pid)(type price)(cf (/ ?price ?nights 125))))
-      (assert(price ?pid ?price))
+      (modify ?path(price ?price))
     else
       (retract ?path)
   )
@@ -745,18 +742,19 @@ $?days)
   ?oavD <- (oav(object ?pid)(type distances)(cf ?cfD))
   ?oavP <- (oav(object ?pid)(type price)(cf ?cfP))
   ?path <- (path(pid ?pid)(cfPath ?cfPath)(ranked no))
-  ?p <- (price ?pid ?price)
 =>
-  (retract ?oavD ?oavP ?p)
-  (modify ?path(price ?price)(cfPath (- (+ (* 0.6 ?cfPath) (* 0.4 ?cfP)) ?cfD)))
+  (retract ?oavD ?oavP)
+  (modify ?path(cfPath (- (+ (* 0.6 ?cfPath) (* 0.4 ?cfP)) ?cfD)))
+  (assert(calculated ?pid))
 )
 
 (defrule rankPath (declare(salience -50))
   ?path <- (path(pid ?pid)(cfPath ?cf&:(> ?cf 0.5))(ranked no))
   (not(path(pid ~?pid)(cfPath ?cf1&:(> ?cf1 ?cf))(ranked no)))
   ?rank <- (pathRank $?ranks)
+  ?c <- (calculated ?pid)
   =>
-  (retract ?rank)
+  (retract ?rank ?c)
   (modify ?path (ranked yes))
   (assert(pathRank $?ranks ?pid))
 )
@@ -769,7 +767,7 @@ $?days)
 =>
   (if (<= ?*count* 5)
     then
-      (printout t ?*count* " -   " ?path "  -->  " ?price "€." crlf)
+      (printout t ?*count* " -   " ?path "  -->  " ?price "€.  --> " ?cfPath crlf)
       (do-for-all-facts ((?s stage)) (eq ?s:path ?path)
         (printout t "    " ?s:hotel " in " ?s:location "  " ?s:arrivalDate "     " ?s:awayDate crlf))
       (bind ?*count* (+ 1 ?*count*))
@@ -787,7 +785,7 @@ $?days)
 
     (if (<> ?in 0)
       then
-       (assert(selected(?in)))
+       (assert(selected ?in))
       else
   			(printout t "cosa vuoi cambiare? inserisci i numeri corrispondenti"crlf
   			 "1 nome" crlf
@@ -800,7 +798,7 @@ $?days)
   			 "8 numero di notti" crlf
   			 "9 prezzo" crlf)
 
-  			(bind $?input (readline))
+  			(bind $?input (explode$(readline)))
 
         (loop-for-count (?i 1 (length$ $?input))
           (bind ?inp (nth$ ?i $?input))
@@ -819,43 +817,91 @@ $?days)
   	)
 )
 
-(defrule checkSelected
-
-	?mod <- (toModify ?attr))
-	?quest <- (question (attribute ?attr))
-
-	=>
+(defrule modify-request
+	?mod <- (toModify ?attr)
+	?quest <- (question(attribute ?attr))
+=>
 	(modify ?quest (already-asked FALSE))
 	(retract ?mod)
   (assert(resetModify))
+  (bind ?*count* 1)
+  (focus RESET)
 )
 
 (defrule createReservation (declare(salience -10))
   ?sel <- (selected ?num)
-  ?path <- (pathRank $?ranks)
+  (pathRank $?ranks)
+  (path(pid ?pid)(price ?price))
   ?req <- (request(name ?name) (numPeople ?numPeople))
-
+  (test(= (member$ ?pid $?ranks) ?num))
   =>
-  (assert(reservation(name ?name)(numPeople ?numPeople)(path ?pid)))
+  (assert(reservation(name ?name)(numPeople ?numPeople)(path ?pid)(price ?price)))
+  (assert(resetAll))
 
-  (retract ?sel ?req ?opt)
+  (retract ?sel ?req)
   (printout t "Prenotazione effettuata!" crlf)
-  (printout t "Vuoi fare una nuova richiesta o terminare?" crlf)
-  (bind ?in (read))
-
-  (if(eq ?in nuova)
-    then
-      (assert(reset))
-      (focus QUESTIONS REQUEST CHOOSE PRINT)
-  )
+  (bind ?*count* 1)
+  (focus RESET)
 )
 
-
 ;;; ##############
-;;; PRINT MODULE
+;;; RESET MODULE
 ;;; ##############
 
-(defmodule PRINT-RESULTS (import MAIN ?ALL)(export ?ALL))
+(defmodule RESET (import MAIN ?ALL)(import QUESTIONS ?ALL)(import RULES ?ALL)(import PATH ?ALL)(export ?ALL))
+
+(defrule resetRanks
+  (or(resetAll)(resetModify))
+  ?rank <- (rank $?)
+  ?pathRank <- (pathRank $?)
+=>
+  (retract ?rank ?pathRank)
+)
+
+(defrule resetOAVs
+  (or(resetAll)(resetModify))
+  ?oav <- (oav)
+=>
+  (retract ?oav)
+)
+
+(defrule resetPaths
+  (or(resetAll)(resetModify))
+  ?path <- (path(pid ?pid))
+  (not(reservation(path ?pid)))
+=>
+  (retract ?path)
+)
+
+(defrule resetStages
+  (or(resetAll)(resetModify))
+  ?stage <- (stage(path ?pid))
+  (not(reservation(path ?pid)))
+=>
+  (retract ?stage)
+)
+
+(defrule resetQuestions (declare(salience -1))
+  (resetAll)
+  ?question <- (question(already-asked TRUE))
+=>
+  (modify ?question(already-asked FALSE))
+)
+
+(defrule deleteResetAll (declare(salience -10))
+  ?reset <- (resetAll)
+=>
+  (retract ?reset)
+  (bind ?year (nth$ 1 (local-time)))
+  (assert(request(date 1 1 (+ 1 ?year))))
+  (focus QUESTIONS RULES PATH)
+)
+(defrule deleteResetModify (declare(salience -10))
+  ?reset <- (resetModify)
+=>
+  (retract ?reset)
+  (focus QUESTIONS RULES PATH)
+)
 
 ;1) oavPrice
 ;2) reset all

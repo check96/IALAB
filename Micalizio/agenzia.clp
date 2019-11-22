@@ -71,6 +71,7 @@
 
 (deftemplate stage
   (slot path)
+  (slot numPeople)
   (slot hotel)
   (slot location)
   (multislot arrivalDate)
@@ -78,13 +79,11 @@
   (slot numNights (default 2))
 )
 
-
 (deftemplate reservation
   (slot name)
   (slot path)
   (slot numPeople)
   (slot price)
-;; DA COMPLETARE
 )
 
 ;;; ##########
@@ -116,10 +115,10 @@
   (hotel(name CastroHotel)(stars 3)(numRooms 20)(location Castrovillari))
   (hotel(name SeaHotel)(stars 4)(numRooms 20)(location Schiavonea))
   (hotel(name SilaHotel)(stars 3)(numRooms 30)(location Camigliatello))
-  (hotel(name TermeHotel)(stars 4)(numRooms 25)(location Lauria))
+  (hotel(name TermeHotel)(stars 3)(numRooms 25)(location Lauria))
   (hotel(name MateHotel)(stars 3)(numRooms 30)(location Matera))
-  (hotel(name BariHotel)(stars 3)(numRooms 30)(location Bari))
-  (hotel(name PoliHotel)(stars 4)(numRooms 35)(location Polignano))
+  (hotel(name BariHotel)(stars 4)(numRooms 30)(location Bari))
+  (hotel(name PoliHotel)(stars 3)(numRooms 35)(location Polignano))
   (hotel(name Trulli)(stars 2)(numRooms 15)(location Alberobello))
   (hotel(name VesuvioHotel)(stars 3)(numRooms 45)(location Napoli))
   (hotel(name Reggia)(stars 4)(numRooms 50)(location Caserta))
@@ -231,7 +230,7 @@
   (score(location Matera) (tourismType enogastronomico) (score 3))
   (score(location Lauria) (tourismType montano) (score 2))
   (score(location Lauria) (tourismType lacustre) (score 3))
-  (score(location Lauria) (tourismType naturalistico) (score 3))
+  (score(location Lauria) (tourismType naturalistico) (score 2))
   (score(location Lauria) (tourismType termale) (score 2))
   (score(location Bari) (tourismType balneare) (score 5))
   (score(location Bari) (tourismType naturalistico) (score 2))
@@ -239,6 +238,7 @@
   (score(location Bari) (tourismType sportivo) (score 3))
   (score(location Bari) (tourismType enogastronomico) (score 4))
   (score(location Polignano) (tourismType balneare) (score 5))
+  (score(location Polignano) (tourismType sportivo) (score 3))
   (score(location Polignano) (tourismType enogastronomico) (score 3))
   (score(location Alberobello) (tourismType naturalistico) (score 3))
   (score(location Alberobello) (tourismType culturale) (score 4))
@@ -252,12 +252,13 @@
   (score(location Napoli) (tourismType religioso) (score 4))
   (score(location Napoli) (tourismType sportivo) (score 4))
   (score(location Napoli) (tourismType enogastronomico) (score 5))
-  (score(location Susa) (tourismType montano) (score 5))
+  (score(location Susa) (tourismType montano) (score 4))
   (score(location Susa) (tourismType naturalistico) (score 5))
   (score(location Susa) (tourismType enogastronomico) (score 3))
   (score(location Susa) (tourismType lacustre) (score 3))
   (score(location Susa) (tourismType sportivo) (score 4))
-  (score(location Montecatini) (tourismType termale) (score 4))
+  (score(location Montecatini) (tourismType termale) (score 5))
+  (score(location Montecatini) (tourismType enogastronomico) (score 3))
   (score(location Montecatini) (tourismType culturale) (score 3))
   (score(location Garda) (tourismType lacustre) (score 5))
   (score(location Garda) (tourismType culturale) (score 2))
@@ -310,16 +311,43 @@
   (rule(if culturale) (then religioso)(not sportivo)(coefficient 2))
   (rule(if religioso) (not sportivo)(coefficient 2))
   (rule(if sportivo) (not enogastronomico)(coefficient 3))
+  (rule(if balneare) (then 6)(coefficient 0.05))
+  (rule(if balneare) (then 7)(coefficient 0.1))
+  (rule(if balneare) (then 8)(coefficient 0.1))
+  (rule(if balneare) (then 9)(coefficient 0.05))
+  (rule(if montano) (then 1)(coefficient 0.1))
+  (rule(if montano) (then 2)(coefficient 0.08))
+  (rule(if montano) (then 7)(coefficient 0.02))
+  (rule(if montano) (then 8)(coefficient 0.02))
+  (rule(if montano) (then 11)(coefficient 0.08))
+  (rule(if montano) (then 12)(coefficient 0.1))
+  (rule(if naturalistico) (then 3)(coefficient 0.02))
+  (rule(if naturalistico) (then 4)(coefficient 0.05))
+  (rule(if naturalistico) (then 5)(coefficient 0.1))
+  (rule(if naturalistico) (then 9)(coefficient 0.03))
+  (rule(if naturalistico) (then 9)(coefficient 0.1))
+  (rule(if sportivo) (then 1)(coefficient 0.1))
+  (rule(if sportivo) (then 2)(coefficient 0.06))
+  (rule(if sportivo) (then 7)(coefficient 0.07))
+  (rule(if sportivo) (then 8)(coefficient 0.07))
+  (rule(if sportivo) (then 11)(coefficient 0.06))
+  (rule(if sportivo) (then 12)(coefficient 0.1))
+  (rule(if lacustre) (then 4)(coefficient 0.08))
+  (rule(if lacustre) (then 5)(coefficient 0.1))
+  (rule(if lacustre) (then 6)(coefficient 0.08))
+  (rule(if lacustre) (then 9)(coefficient 0.08))
 )
 
 (defrule simmetricalRules(declare(salience 1000))
   (rule(if ?type) (then ?type2 & ~nil)(coefficient ?div))
+  (test(neq (type ?type2) INTEGER))
 =>
   (assert(rule(if ?type2)(then ?type)(coefficient ?div)))
 )
 
 (defrule simmetricalRulesNot(declare(salience 1000))
   (rule(if ?type) (not ?type2 & ~nil)(coefficient ?div))
+  (test(neq (type ?type2) INTEGER))
 =>
   (assert(rule(if ?type2)(not ?type)(coefficient ?div)))
 )
@@ -332,9 +360,8 @@
 
 (defrule start
   =>
-  (bind ?year (nth$ 1 (local-time)))
-  (assert(request(date 1 1 (+ 1 ?year))))
-  (focus QUESTIONS RULES PATH)
+  (assert(request))
+  (focus QUESTIONS RULES TRIP)
 )
 
 ;;; #################
@@ -421,7 +448,7 @@
           (printout t ?question crlf)
           (bind $?a (readline))
         else
-          (return $?a))
+          (return (lowcase $?a)))
   )
 )
 
@@ -462,7 +489,7 @@
 )
 
 (defrule lastChecks (declare(salience -10))
-  ?req <- (request(spostamenti ?value)(nights ?nights))
+  ?req <- (request(numPeople ?numPeople)(spostamenti ?value)(nights ?nights)(price ?price))
 =>
   (if (eq ?value molto)
       then
@@ -470,6 +497,10 @@
       else
         (modify ?req(minLocations (+ 1 (div ?nights 8))) (maxLocations (+ 2 (div ?nights 8))))
   )
+
+  (if(= ?price 0)
+    then
+      (modify ?req(price (* ?nights 125 (div (+ ?numPeople 1) 2)))))
   (assert(rank (create$ ))(pathRank (create$ )))
 )
 
@@ -479,25 +510,78 @@
 
 (defmodule RULES (import MAIN ?ALL)(import QUESTIONS ?ALL)(export ?ALL))
 
-(defrule assertOAV
+(deffunction getMonths ($?months)
+  (bind $?month (create$ 1))
+  (bind ?max (nth$ 1 ?months))
+
+  (loop-for-count (?i 2 12) do
+    (if (> (nth$ ?i ?months) ?max)
+      then
+        (bind $?month (create$ ?i))
+        (bind ?max (nth$ ?i ?months))
+      else (if (= (nth$ ?i ?months) ?max)
+        then
+          (bind $?month (create$ $?month ?i)))))
+$?month)
+
+(deffunction chooseDate($?months)
+  (bind ?day (+ (mod (random) 28) 1))
+  (bind $?m (getMonths $?months))
+  (bind ?index (+ (mod (random) (length$ $?m)) 1))
+  (return (create$ ?day (nth$ ?index $?m) 2020))
+)
+
+(deffunction replace(?index ?value $?array)
+  (bind $?new (create$))
+  (loop-for-count (?i 1 (- ?index 1)) do
+    (bind $?new (create$ $?new (nth$ ?i $?array))))
+  (bind $?new (create$ $?new ?value))
+  (loop-for-count (?i (+ ?index 1) 12) do
+    (bind $?new (create$ $?new (nth$ ?i $?array))))
+  (return $?new)
+)
+
+(defglobal ?*months* = (create$ 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5))
+
+(defrule CF_date (declare(salience 10))
+  (request(tourismTypes $? ?ttype $?))
+  (rule(if ?ttype)(then ?month)(coefficient ?c))
+  (test(eq (type ?month) INTEGER))
+=>
+  (bind ?value (+ ?c (nth$ ?month ?*months*)))
+  (bind ?*months* (replace ?month ?value ?*months*))
+)
+
+(defrule date (declare(salience 5))
+  ?req <- (request(date $?date))
+  (test(= (length$ $?date) 0))
+=>
+  (modify ?req(date (chooseDate ?*months*)))
+  (bind ?*months* (create$ 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5 0.5))
+)
+
+(defrule cf_stars
   (request(numPeople ?numPeople)(stars ?stars))
   (hotel(name ?hotel)(stars ?numStars&:(>= ?numStars ?stars))(numRooms ?numRooms&:(>= ?numRooms (div (+ ?numPeople 1) 2))))
 =>
-  (assert(oav(object ?hotel)(type region)(cf 0.5)))
   (assert(oav(object ?hotel)(type stars)(cf (/ ?numStars 5))))
 )
 
 (defrule CF_regions
-  ?oav <- (oav(object ?hotel)(type region))
   (request(regions $?regions)(notRegions $?notRegions))
   (hotel(name ?hotel)(location ?location))
   (location(name ?location)(region ?region))
 =>
-  (if(member$ ?region $?regions) then
-    (modify ?oav(cf 0.85)))
-
-  (if(member$ ?region $?notRegions) then
-    (modify ?oav(cf 0.15)))
+  (if(member$ ?region $?regions)
+    then
+      (assert(oav(object ?hotel)(type region)(cf 0.85)))
+    else (if(member$ ?region $?notRegions)
+            then
+              (assert(oav(object ?hotel)(type region)(cf 0.15)))
+            else
+              (assert(oav(object ?hotel)(type region)(cf 0.5)))
+          )
+    )
 )
 
 (defglobal ?*value* = 0.5)
@@ -538,8 +622,8 @@
   ?oavU <- (oav(object ?hotel)(type used)(cf ?cfU))
   =>
     (retract ?oavR ?oavT ?oavS)
-    (bind ?cf (* ?cfU (+ (* 0.5 ?cfR) (* 0.4 ?cfT) (* 0.1 ?cfS))))
-    ;(printout t ?hotel " (R: " ?cfR ", T: " ?cfT ", U: "?cfU ", S: "?cfS ")  ---> " ?cf crlf)
+    (bind ?cf (* ?cfU (+ (* 0.45 ?cfR) (* 0.45 ?cfT) (* 0.1 ?cfS))))
+    (printout t ?hotel " (R: " ?cfR ", T: " ?cfT ", U: "?cfU ", S: "?cfS ")  ---> " ?cf crlf)
     (modify ?oavU(type all)(cf ?cf))
 )
 
@@ -563,10 +647,10 @@
 )
 
 ;;; #############
-;;; PATH MODULE
+;;; TRIP MODULE
 ;;; #############
 
-(defmodule PATH (import MAIN ?ALL)(import RULES ?ALL)(import QUESTIONS ?ALL)(export ?ALL))
+(defmodule TRIP (import MAIN ?ALL)(import RULES ?ALL)(import QUESTIONS ?ALL)(export ?ALL))
 
 (deffunction calculateAwayDate (?nights $?date)
 
@@ -607,6 +691,7 @@
   (bind ?days (*(+ ?days (nth$ 1 $?date)) (-(nth$ 3 $?date) 2019 -1))))
   ?days)
 
+
 (defrule first-location (declare(salience 100))
   (rank $? ?hotel $?)
   (hotel(name ?hotel)(location ?location))
@@ -627,11 +712,19 @@
   (test(not(member$ ?hotel1 $?hotels)))
   (test(not(member$ ?loc1 $?locations)))
 
-  (distance(from ?loc)(to ?loc1)(distance ?d&:(<= ?d 200)))
+  (distance(from ?loc)(to ?loc1)(distance ?d&:(<= ?d 120)))
 =>
   (bind ?cf (/ (+ (* ?cfPath (length$ $?hotels)) ?cfHotel) (+ 1 (length$ $?hotels))))
   (modify ?path(hotels $?hotels ?hotel1)(locations $?locations ?loc1) (cfHotels $?cfHotels ?cfHotel) (cfPath ?cf))
 )
+
+;(defrule deleteForNum
+;  (request(nights ?nights))
+;  ?path <- (path(locations $?locations))
+;  (test(< (length$ $?locations) (+ 1 (div ?nights 8))))
+;=>
+;  (retract ?path)
+;)
 
 (defrule cf_Distances (declare(salience 70))
   (path(pid ?pid)(locations $?locations)(cfPath ?cf)(ranked no))
@@ -640,13 +733,10 @@
   (bind ?value 0)
   (loop-for-count (?i 1 (- (length$ $?locations) 1)) do
     (do-for-all-facts ((?d distance)) (and(eq ?d:from (nth$ ?i $?locations))(eq ?d:to (nth$ (+ 1 ?i) $?locations)))
-      (bind ?value (+ ?value ?d:distance)))
+      (bind ?value (+ ?value (- 100 ?d:distance))))
   )
 
-  (bind ?cfD (/ (- ?value (* 100 (length$ $?locations))) 1000))
-  (if (< ?cfD 0) then
-    (bind ?cfD 0))
-
+  (bind ?cfD (/ (- 100 (/ ?value (length$ $?locations))) 1000))
   (assert(oav(object ?pid)(type distances)(cf ?cfD)))
 )
 
@@ -672,14 +762,14 @@
 $?days)
 
 (defrule make-stages (declare(salience 60))
-  (request(nights ?nights)(date $?date))
+  (request(numPeople ?numPeople)(nights ?nights)(date $?date))
   (path (pid ?pid)(hotels $?hotels)(locations $?locations)(cfHotels $?cfs)(ranked no))
 
 =>
   (bind $?days (dayForHotel ?nights $?cfs))
 
   (loop-for-count (?i 1 (length$ $?hotels))
-    (assert(stage(path ?pid)(hotel (nth$ ?i $?hotels))(location (nth$ ?i $?locations))(arrivalDate $?date)(awayDate (calculateAwayDate (nth$ ?i $?days) $?date)) (numNights (nth$ ?i $?days))))
+    (assert(stage(numPeople ?numPeople)(path ?pid)(hotel (nth$ ?i $?hotels))(location (nth$ ?i $?locations))(arrivalDate $?date)(awayDate (calculateAwayDate (nth$ ?i $?days) $?date)) (numNights (nth$ ?i $?days))))
     (bind $?date (calculateAwayDate (nth$ ?i $?days) $?date)))
 )
 
@@ -721,7 +811,7 @@ $?days)
 )
 
 (defrule cf_Price (declare(salience 30))
-  (request(numPeople ?numPeople)(price ?priceReq)(nights ?nights))
+  (request(numPeople ?numPeople)(price ?budget)(nights ?nights))
   ?path <- (path(pid ?pid)(ranked no)(price nil))
   (not(calculated ?pid))
 =>
@@ -729,9 +819,9 @@ $?days)
   (do-for-all-facts ((?s stage) (?h hotel)) (and(eq ?s:path ?pid)(eq ?s:hotel ?h:name))
     (bind ?price (+ ?price (* ?s:numNights 25 (+ ?h:stars 1) (div (+ ?numPeople 1) 2)))))
 
-  (if (or(< ?price ?priceReq)(= ?priceReq 0))
+  (if (<= ?price (+ ?budget 100))
     then
-      (assert(oav(object ?pid)(type price)(cf (/ ?price ?nights 125))))
+      (assert(oav(object ?pid)(type price)(cf (/ ?price ?budget))))
       (modify ?path(price ?price))
     else
       (retract ?path)
@@ -744,7 +834,9 @@ $?days)
   ?path <- (path(pid ?pid)(cfPath ?cfPath)(ranked no))
 =>
   (retract ?oavD ?oavP)
-  (modify ?path(cfPath (- (+ (* 0.6 ?cfPath) (* 0.4 ?cfP)) ?cfD)))
+  (bind ?cf (- (+ (* 0.6 ?cfPath) (* 0.4 ?cfP)) ?cfD))
+;  (printout t "path " ?pid "  cfD: " ?cfD "   ?cfPath: " ?cfPath "  cfPrice: " ?cfP "  ---> " ?cf crlf)
+  (modify ?path(cfPath ?cf))
   (assert(calculated ?pid))
 )
 
@@ -765,7 +857,7 @@ $?days)
   (pathRank $? ?path $?)
   ?p <- (path(pid ?path)(cfPath ?cfPath)(price ?price))
 =>
-  (if (<= ?*count* 5)
+  (if (<= ?*count* 25)
     then
       (printout t ?*count* " -   " ?path "  -->  " ?price "€.  --> " ?cfPath crlf)
       (do-for-all-facts ((?s stage)) (eq ?s:path ?path)
@@ -796,7 +888,7 @@ $?days)
   			 "6 tipi di turismo da evitare" crlf
   			 "7 numero di stelle dell'albergo" crlf
   			 "8 numero di notti" crlf
-  			 "9 prezzo" crlf)
+  			 "9 budget" crlf)
 
   			(bind $?input (explode$(readline)))
 
@@ -848,7 +940,7 @@ $?days)
 ;;; RESET MODULE
 ;;; ##############
 
-(defmodule RESET (import MAIN ?ALL)(import QUESTIONS ?ALL)(import RULES ?ALL)(import PATH ?ALL)(export ?ALL))
+(defmodule RESET (import MAIN ?ALL)(import QUESTIONS ?ALL)(import RULES ?ALL)(import TRIP ?ALL)(export ?ALL))
 
 (defrule resetRanks
   (or(resetAll)(resetModify))
@@ -868,7 +960,6 @@ $?days)
 (defrule resetPaths
   (or(resetAll)(resetModify))
   ?path <- (path(pid ?pid))
-  (not(reservation(path ?pid)))
 =>
   (retract ?path)
 )
@@ -894,13 +985,13 @@ $?days)
   (retract ?reset)
   (bind ?year (nth$ 1 (local-time)))
   (assert(request(date 1 1 (+ 1 ?year))))
-  (focus QUESTIONS RULES PATH)
+  (focus QUESTIONS RULES TRIP)
 )
 (defrule deleteResetModify (declare(salience -10))
   ?reset <- (resetModify)
 =>
   (retract ?reset)
-  (focus QUESTIONS RULES PATH)
+  (focus QUESTIONS RULES TRIP)
 )
 
 ;1) oavPrice

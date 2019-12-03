@@ -1,8 +1,7 @@
 search(Soluzione) :-
-   iniziale(S),valuta(nodo(S,0),F), iterativeDeepening(nodo(S,0),Soluzione,F),length(Soluzione,L),write(L),nl.
+   iniziale(S), iterativeDeepening(nodo(S,0),Soluzione,1).
 
 iterativeDeepening(nodo(S,G),Soluzione,Soglia) :-
-    %write('soglia '), write(Soglia), nl,
     assert(overbound(999999999)),
     dfsLimitata(nodo(S,G),Soluzione,[S],Soglia), !.
 

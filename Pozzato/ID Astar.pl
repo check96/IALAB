@@ -1,5 +1,5 @@
 search(Soluzione) :-
-   iniziale(S), iterativeDeepening(nodo(S,0),Soluzione,1).
+   iniziale(S), iterativeDeepening(nodo(S,0),Soluzione,1),length(Soluzione,L),write(L).
 
 iterativeDeepening(nodo(S,G),Soluzione,Soglia) :-
     assert(overbound(999999999)),
@@ -12,15 +12,17 @@ iterativeDeepening(S,Soluzione,_):-
 
 dfsLimitata(nodo(S,_),[],_,_) :- finale(S),!.
 dfsLimitata(nodo(S,G),[Azione|AzioniTail],Visitati,Soglia):-
+%  write(Soglia),write("  "),write(S),write("  "),
     valuta(nodo(S,G),F),
-    \+ check(F,Soglia),
+    \+check(F,Soglia),!,
     applicabile(Azione,S),
     trasforma(Azione,S,SNuovo,Costo),
+%    write(Azione),write("  ==>   "),write(SNuovo),nl,
     \+member(SNuovo,Visitati),
     GValue is G + Costo,
     dfsLimitata(nodo(SNuovo,GValue),AzioniTail,[SNuovo|Visitati],Soglia).
 
-valuta(nodo(S,G),F) :- distanza(S,H), F is G + H.
+valuta(nodo(S,G),F) :- distanza(S,H), F is G + H,!.
 
 check(F,Soglia):-
     F > Soglia,

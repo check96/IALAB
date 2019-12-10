@@ -1,10 +1,15 @@
 numRighe(30).
 numColonne(30).
 iniziale(pos(27,17)).
-finale(pos(9,6)).
-%finale(pos(30,8)).
-%finale(pos(24,10)).
-%finale(pos(27,28)). % NO Soluzioni
+%finale(pos(24,10)).  % profondità 10
+%finale(pos(28,7)).  % profondità 15
+%finale(pos(15,19)).  % profondità 20
+%finale(pos(16,14)).  % profondità 24
+finale(pos(19,29)).   % profondità 28
+%finale(pos(2,26)).   % profondità 34
+%finale(pos(10,1)).   % profondità 45
+%finale(pos(9,6)).    % profondità 49
+finale(pos(27,28)).  % NO Soluzioni
 
 occupata(pos(1,2)).
 occupata(pos(1,3)).
@@ -24,7 +29,6 @@ occupata(pos(2,9)).
 occupata(pos(2,11)).
 occupata(pos(2,14)).
 occupata(pos(2,17)).
-occupata(pos(2,22)).
 occupata(pos(2,27)).
 occupata(pos(3,1)).
 occupata(pos(3,2)).
@@ -246,7 +250,6 @@ occupata(pos(24,5)).
 occupata(pos(24,9)).
 occupata(pos(24,13)).
 occupata(pos(24,14)).
-occupata(pos(24,15)).
 occupata(pos(24,21)).
 occupata(pos(24,23)).
 occupata(pos(24,26)).
